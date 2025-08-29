@@ -204,7 +204,17 @@ async function createCalendarEvent(reservation, auth) {
   const calendarId = process.env.GOOGLE_CALENDAR_ID;
   const slotMinutes = parseInt(process.env.SLOT_MINUTES) || 30;
   
-  const startDateTime = moment(`${reservation.date} ${reservation.time}`, 'YYYY-MM-DD HH:mm');
+  // Crear fecha en zona horaria de Montevideo (GMT-3)
+  // Cuando el usuario selecciona 11:00, queremos que aparezca como 11:00 en el calendario
+  let startDateTime;
+  try {
+    // Intentar usar moment.tz si está disponible
+    startDateTime = moment.tz(`${reservation.date} ${reservation.time}`, 'YYYY-MM-DD HH:mm', 'America/Montevideo');
+  } catch (error) {
+    // Fallback: crear en UTC y ajustar manualmente para GMT-3
+    startDateTime = moment.utc(`${reservation.date} ${reservation.time}`, 'YYYY-MM-DD HH:mm');
+    startDateTime.add(3, 'hours'); // Ajustar a GMT-3
+  }
   const endDateTime = startDateTime.clone().add(slotMinutes, 'minutes');
   
   const event = {
@@ -244,7 +254,7 @@ async function createReservation(data, auth) {
     data.email,
     data.date,
     data.time,
-    'PENDIENTE',
+    'CONFIRMADA',
     data.eventId || '',
     cancelToken,
     cancelUrl,
@@ -268,7 +278,7 @@ async function createReservation(data, auth) {
     email: data.email,
     date: data.date,
     time: data.time,
-    status: 'PENDIENTE',
+    status: 'CONFIRMADA',
     eventId: data.eventId,
     cancelToken,
     cancelUrl,
@@ -291,7 +301,7 @@ async function getReservationsByEmailAndDate(email, date, auth) {
     
     for (let i = 1; i < rows.length; i++) {
       const row = rows[i];
-      if (row[2] === email && row[3] === date && row[5] === 'PENDIENTE') {
+      if (row[2] === email && row[3] === date && row[5] === 'CONFIRMADA') {
         reservations.push({
           id: row[0],
           name: row[1],
