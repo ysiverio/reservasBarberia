@@ -62,7 +62,8 @@ const ALLOWED_ORIGINS = [
   'https://tu-dominio.com',
   'https://www.tu-dominio.com',
   'http://localhost:3000', // Para desarrollo local
-  'http://localhost:8080'  // Para desarrollo local
+  'http://localhost:8080', // Para desarrollo local
+  'http://localhost:8000'  // Para desarrollo local
 ];
 
 // Configuración de validación

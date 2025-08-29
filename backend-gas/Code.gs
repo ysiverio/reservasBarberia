@@ -31,6 +31,20 @@ function doGet(e) {
 }
 
 /**
+ * Función para manejar solicitudes OPTIONS (preflight CORS)
+ * @param {Object} e - Evento de la solicitud
+ * @returns {Object} Respuesta HTTP
+ */
+function doOptions(e) {
+  return ContentService.createTextOutput('')
+    .setMimeType(ContentService.MimeType.TEXT)
+    .setHeader('Access-Control-Allow-Origin', '*')
+    .setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS')
+    .setHeader('Access-Control-Allow-Headers', 'Content-Type')
+    .setHeader('Access-Control-Max-Age', '86400');
+}
+
+/**
  * Función principal para manejar solicitudes POST
  * @param {Object} e - Evento de la solicitud
  * @returns {Object} Respuesta HTTP
