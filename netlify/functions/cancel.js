@@ -113,16 +113,29 @@ async function getReservationByToken(token, auth) {
   const sheetId = process.env.GOOGLE_SHEET_ID;
   
   try {
+    console.log('🔍 Buscando reserva con token:', token);
+    
     const response = await sheets.spreadsheets.values.get({
       spreadsheetId: sheetId,
       range: 'A:K'
     });
     
     const rows = response.data.values || [];
+    console.log(`📊 Total de filas encontradas: ${rows.length}`);
     
     for (let i = 1; i < rows.length; i++) {
       const row = rows[i];
+      console.log(`Fila ${i}: Token=${row[7]}, Status=${row[5]}`);
+      
       if (row[7] === token && row[5] === 'CONFIRMADA') {
+        console.log('✅ Reserva encontrada:', {
+          id: row[0],
+          name: row[1],
+          email: row[2],
+          date: row[3],
+          time: row[4]
+        });
+        
         return {
           id: row[0],
           name: row[1],
@@ -138,6 +151,7 @@ async function getReservationByToken(token, auth) {
       }
     }
     
+    console.log('❌ No se encontró reserva con ese token');
     return null;
   } catch (error) {
     console.error('Error obteniendo reserva por token:', error);

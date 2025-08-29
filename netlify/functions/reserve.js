@@ -168,7 +168,8 @@ async function createCalendarEvent(reservation, auth) {
   const slotMinutes = parseInt(process.env.SLOT_MINUTES) || 30;
   
   // Crear fecha en zona horaria de Montevideo (UTC-3)
-  const startDateTime = moment(`${reservation.date} ${reservation.time}`, 'YYYY-MM-DD HH:mm').subtract(3, 'hours');
+  // Cuando el usuario selecciona 11:00, queremos que aparezca como 11:00 en el calendario
+  const startDateTime = moment(`${reservation.date} ${reservation.time}`, 'YYYY-MM-DD HH:mm');
   const endDateTime = startDateTime.clone().add(slotMinutes, 'minutes');
   
   const event = {
