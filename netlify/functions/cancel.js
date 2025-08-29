@@ -1,13 +1,5 @@
 const { google } = require('googleapis');
-const crypto = require('crypto');
 const moment = require('moment');
-const nodemailer = require('nodemailer');
-
-// Configurar autenticación de Google
-const auth = new google.auth.GoogleAuth({
-  credentials: JSON.parse(process.env.GOOGLE_CREDENTIALS),
-  scopes: ['https://www.googleapis.com/auth/calendar', 'https://www.googleapis.com/auth/spreadsheets']
-});
 
 exports.handler = async (event, context) => {
   // Configurar CORS
@@ -27,6 +19,12 @@ exports.handler = async (event, context) => {
   }
 
   try {
+    // Configurar autenticación de Google
+    const auth = new google.auth.GoogleAuth({
+      credentials: JSON.parse(process.env.GOOGLE_CREDENTIALS),
+      scopes: ['https://www.googleapis.com/auth/calendar', 'https://www.googleapis.com/auth/spreadsheets']
+    });
+
     if (event.httpMethod === 'GET') {
       // Mostrar página de cancelación
       const { token } = event.queryStringParameters || {};
@@ -35,41 +33,31 @@ exports.handler = async (event, context) => {
         return {
           statusCode: 400,
           headers: { ...headers, 'Content-Type': 'text/html' },
-          body: '<h1>Token de cancelación requerido</h1>'
+          body: createErrorPage('Token de cancelación no válido')
         };
       }
 
-      const reservation = await findReservationByToken(token);
+      const reservation = await getReservationByToken(token, auth);
       
       if (!reservation) {
         return {
           statusCode: 404,
           headers: { ...headers, 'Content-Type': 'text/html' },
-          body: '<h1>Reserva no encontrada</h1>'
+          body: createErrorPage('Reserva no encontrada o ya cancelada')
         };
       }
 
-      if (reservation.status === 'CANCELADA') {
-        return {
-          statusCode: 400,
-          headers: { ...headers, 'Content-Type': 'text/html' },
-          body: '<h1>La reserva ya fue cancelada</h1>'
-        };
-      }
-
-      // Renderizar página de cancelación
-      const html = generateCancelPage(reservation);
-      
       return {
         statusCode: 200,
         headers: { ...headers, 'Content-Type': 'text/html' },
-        body: html
+        body: createCancelPage(reservation)
       };
 
     } else if (event.httpMethod === 'POST') {
       // Procesar cancelación
-      const { token, reason } = JSON.parse(event.body);
-      
+      const body = JSON.parse(event.body);
+      const { token, reason = '' } = body;
+
       if (!token) {
         return {
           statusCode: 400,
@@ -81,24 +69,21 @@ exports.handler = async (event, context) => {
         };
       }
 
-      // Marcar reserva como cancelada
-      const result = await cancelReservation(token, reason);
+      const reservation = await getReservationByToken(token, auth);
       
-      if (!result.success) {
+      if (!reservation) {
         return {
-          statusCode: 400,
+          statusCode: 404,
           headers,
-          body: JSON.stringify(result)
+          body: JSON.stringify({
+            success: false,
+            message: 'Reserva no encontrada o ya cancelada'
+          })
         };
       }
 
-      // Eliminar evento del calendario si existe
-      if (result.reservation.eventId) {
-        await deleteCalendarEvent(result.reservation.eventId);
-      }
-
-      // Enviar email de cancelación
-      await sendCancellationEmail(result.reservation, reason);
+      // Cancelar reserva
+      await cancelReservation(reservation, reason, auth);
 
       return {
         statusCode: 200,
@@ -123,7 +108,7 @@ exports.handler = async (event, context) => {
   }
 };
 
-async function findReservationByToken(token) {
+async function getReservationByToken(token, auth) {
   const sheets = google.sheets({ version: 'v4', auth });
   const sheetId = process.env.GOOGLE_SHEET_ID;
   
@@ -137,7 +122,7 @@ async function findReservationByToken(token) {
     
     for (let i = 1; i < rows.length; i++) {
       const row = rows[i];
-      if (row[7] === token) {
+      if (row[7] === token && row[5] === 'CONFIRMADA') {
         return {
           id: row[0],
           name: row[1],
@@ -148,41 +133,24 @@ async function findReservationByToken(token) {
           eventId: row[6],
           cancelToken: row[7],
           cancelUrl: row[8],
-          createdAt: row[9],
-          updatedAt: row[10]
+          createdAt: row[9]
         };
       }
     }
     
     return null;
   } catch (error) {
-    console.error('Error buscando reserva por token:', error);
+    console.error('Error obteniendo reserva por token:', error);
     return null;
   }
 }
 
-async function cancelReservation(token, reason = '') {
+async function cancelReservation(reservation, reason, auth) {
   const sheets = google.sheets({ version: 'v4', auth });
   const sheetId = process.env.GOOGLE_SHEET_ID;
   
   try {
-    const reservation = await findReservationByToken(token);
-    
-    if (!reservation) {
-      return {
-        success: false,
-        message: 'Reserva no encontrada'
-      };
-    }
-    
-    if (reservation.status === 'CANCELADA') {
-      return {
-        success: false,
-        message: 'La reserva ya fue cancelada'
-      };
-    }
-    
-    // Actualizar estado en la hoja principal
+    // Actualizar estado a CANCELADA
     const response = await sheets.spreadsheets.values.get({
       spreadsheetId: sheetId,
       range: 'A:K'
@@ -192,148 +160,81 @@ async function cancelReservation(token, reason = '') {
     let rowIndex = -1;
     
     for (let i = 1; i < rows.length; i++) {
-      if (rows[i][7] === token) {
-        rowIndex = i + 1;
+      if (rows[i][0] === reservation.id) {
+        rowIndex = i + 1; // Sheets usa índices basados en 1
         break;
       }
     }
     
-    if (rowIndex === -1) {
-      return {
-        success: false,
-        message: 'Reserva no encontrada'
-      };
+    if (rowIndex > 0) {
+      await sheets.spreadsheets.values.update({
+        spreadsheetId: sheetId,
+        range: `F${rowIndex}`,
+        valueInputOption: 'RAW',
+        resource: {
+          values: [['CANCELADA']]
+        }
+      });
     }
-    
-    // Actualizar estado y fecha de actualización
-    await sheets.spreadsheets.values.update({
-      spreadsheetId: sheetId,
-      range: `F${rowIndex}:K${rowIndex}`,
-      valueInputOption: 'RAW',
-      resource: {
-        values: [['CANCELADA', '', '', '', '', moment().format('YYYY-MM-DD HH:mm:ss')]]
+
+    // Eliminar evento del calendario
+    if (reservation.eventId) {
+      const calendar = google.calendar({ version: 'v3', auth });
+      const calendarId = process.env.GOOGLE_CALENDAR_ID;
+      
+      try {
+        await calendar.events.delete({
+          calendarId: calendarId,
+          eventId: reservation.eventId
+        });
+        console.log(`Evento ${reservation.eventId} eliminado del calendario`);
+      } catch (calendarError) {
+        console.error('Error eliminando evento del calendario:', calendarError);
       }
-    });
-    
-    // Registrar en hoja de cancelaciones
-    await recordCancellation(reservation, reason);
-    
-    return {
-      success: true,
-      reservation: {
-        ...reservation,
-        status: 'CANCELADA'
-      }
-    };
-    
+    }
+
+    // Registrar cancelación
+    await logCancellation(reservation, reason, auth);
+
   } catch (error) {
     console.error('Error cancelando reserva:', error);
-    return {
-      success: false,
-      message: 'Error cancelando reserva'
-    };
+    throw error;
   }
 }
 
-async function recordCancellation(reservation, reason) {
+async function logCancellation(reservation, reason, auth) {
   const sheets = google.sheets({ version: 'v4', auth });
   const sheetId = process.env.GOOGLE_SHEET_ID;
-  const cancelSheetName = 'Cancelaciones';
+  const cancelSheetName = process.env.CANCEL_SHEET_NAME || 'Cancelaciones';
+  const now = moment().format('YYYY-MM-DD HH:mm:ss');
+  
+  const row = [
+    reservation.id,
+    reservation.name,
+    reservation.email,
+    reservation.date,
+    reservation.time,
+    now,
+    reason || 'Sin motivo especificado'
+  ];
   
   try {
-    const cancelId = crypto.randomBytes(16).toString('hex');
-    const now = moment().format('YYYY-MM-DD HH:mm:ss');
-    
-    const row = [
-      cancelId,
-      reservation.id,
-      reservation.name,
-      reservation.email,
-      reservation.date,
-      reservation.time,
-      reason,
-      now
-    ];
-    
     await sheets.spreadsheets.values.append({
       spreadsheetId: sheetId,
-      range: `${cancelSheetName}!A:H`,
+      range: `${cancelSheetName}!A:G`,
       valueInputOption: 'RAW',
       insertDataOption: 'INSERT_ROWS',
       resource: {
         values: [row]
       }
     });
-    
   } catch (error) {
     console.error('Error registrando cancelación:', error);
   }
 }
 
-async function deleteCalendarEvent(eventId) {
-  const calendar = google.calendar({ version: 'v3', auth });
-  const calendarId = process.env.GOOGLE_CALENDAR_ID;
-  
-  try {
-    await calendar.events.delete({
-      calendarId: calendarId,
-      eventId: eventId
-    });
-    
-    console.log(`Evento ${eventId} eliminado del calendario`);
-  } catch (error) {
-    console.error('Error eliminando evento del calendario:', error);
-  }
-}
-
-async function sendCancellationEmail(reservation, reason) {
-  try {
-    const transporter = nodemailer.createTransporter({
-      service: 'gmail',
-      auth: {
-        user: process.env.EMAIL_FROM,
-        pass: process.env.EMAIL_PASSWORD
-      }
-    });
-    
-    const formattedDate = moment(reservation.date).format('dddd, D [de] MMMM [de] YYYY');
-    
-    const mailOptions = {
-      from: process.env.EMAIL_FROM,
-      to: reservation.email,
-      subject: 'Reserva cancelada - Barbería',
-      html: `
-        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
-          <h2 style="color: #333;">Reserva cancelada</h2>
-          <p>Hola <strong>${reservation.name}</strong>,</p>
-          <p>Tu reserva ha sido cancelada exitosamente.</p>
-          
-          <div style="background-color: #f8f9fa; padding: 20px; border-radius: 8px; margin: 20px 0;">
-            <h3 style="margin-top: 0;">Detalles de la reserva cancelada:</h3>
-            <p><strong>Fecha:</strong> ${formattedDate}</p>
-            <p><strong>Hora:</strong> ${reservation.time}</p>
-            ${reason ? `<p><strong>Motivo:</strong> ${reason}</p>` : ''}
-          </div>
-          
-          <p>Si cambias de opinión, puedes hacer una nueva reserva en cualquier momento.</p>
-          
-          <p>Saludos,<br>
-          <strong>Barbería</strong></p>
-        </div>
-      `
-    };
-    
-    await transporter.sendMail(mailOptions);
-    console.log(`Email de cancelación enviado a ${reservation.email}`);
-    
-  } catch (error) {
-    console.error('Error enviando email de cancelación:', error);
-  }
-}
-
-function generateCancelPage(reservation) {
+function createCancelPage(reservation) {
   const formattedDate = moment(reservation.date).format('dddd, D [de] MMMM [de] YYYY');
-  const reprogramUrl = `${process.env.URL}?date=${reservation.date}`;
   
   return `
 <!DOCTYPE html>
@@ -350,30 +251,27 @@ function generateCancelPage(reservation) {
         }
         
         body {
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-            background-color: #f5f5f5;
-            color: #333;
-            line-height: 1.6;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
         }
         
         .container {
-            max-width: 600px;
-            margin: 0 auto;
-            padding: 20px;
-            min-height: 100vh;
-        }
-        
-        .header {
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
+            padding: 40px;
+            max-width: 500px;
+            width: 100%;
             text-align: center;
-            margin-bottom: 40px;
-            padding: 20px 0;
         }
         
         .logo-container {
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            margin-bottom: 10px;
+            margin-bottom: 30px;
         }
         
         .logo-image {
@@ -381,148 +279,211 @@ function generateCancelPage(reservation) {
             height: 80px;
             object-fit: cover;
             border-radius: 50%;
-            margin-bottom: 10px;
-            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
         }
         
         .logo-text {
-            font-size: 2rem;
+            margin-top: 15px;
+            font-size: 24px;
             font-weight: 700;
-            margin: 0;
+            color: #333;
         }
         
-        .card {
-            background: white;
-            padding: 30px;
-            border-radius: 8px;
-            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+        h1 {
+            color: #333;
             margin-bottom: 20px;
+            font-size: 28px;
         }
         
         .reservation-details {
             background: #f8f9fa;
-            padding: 20px;
-            border-radius: 8px;
-            margin-bottom: 20px;
+            border-radius: 15px;
+            padding: 25px;
+            margin: 25px 0;
+            text-align: left;
         }
         
-        .reservation-details p {
+        .detail-row {
+            display: flex;
+            justify-content: space-between;
             margin-bottom: 10px;
+            padding: 8px 0;
+            border-bottom: 1px solid #e9ecef;
+        }
+        
+        .detail-row:last-child {
+            border-bottom: none;
+            margin-bottom: 0;
+        }
+        
+        .detail-label {
+            font-weight: 600;
+            color: #555;
+        }
+        
+        .detail-value {
+            color: #333;
+        }
+        
+        .warning {
+            background: #fff3cd;
+            border: 1px solid #ffeaa7;
+            border-radius: 10px;
+            padding: 15px;
+            margin: 20px 0;
+            color: #856404;
         }
         
         .form-group {
-            margin-bottom: 20px;
+            margin: 20px 0;
+            text-align: left;
         }
         
-        .form-group label {
+        label {
             display: block;
             margin-bottom: 8px;
-            font-weight: 500;
+            font-weight: 600;
+            color: #555;
         }
         
-        .form-group textarea {
+        textarea {
             width: 100%;
             padding: 12px;
-            border: 2px solid #e0e0e0;
-            border-radius: 8px;
-            font-size: 16px;
+            border: 2px solid #e9ecef;
+            border-radius: 10px;
+            font-family: inherit;
+            font-size: 14px;
             resize: vertical;
-            min-height: 100px;
+            min-height: 80px;
+        }
+        
+        textarea:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+        
+        .button-group {
+            display: flex;
+            gap: 15px;
+            margin-top: 30px;
         }
         
         .btn {
-            display: inline-block;
-            padding: 12px 24px;
+            flex: 1;
+            padding: 15px 25px;
             border: none;
-            border-radius: 8px;
+            border-radius: 10px;
             font-size: 16px;
-            font-weight: 500;
-            text-decoration: none;
+            font-weight: 600;
             cursor: pointer;
             transition: all 0.3s ease;
+            text-decoration: none;
+            display: inline-block;
             text-align: center;
         }
         
-        .btn-danger {
-            background-color: #dc3545;
+        .btn-cancel {
+            background: #dc3545;
             color: white;
         }
         
-        .btn-danger:hover {
-            background-color: #c82333;
+        .btn-cancel:hover {
+            background: #c82333;
+            transform: translateY(-2px);
         }
         
-        .btn-secondary {
-            background-color: #6c757d;
+        .btn-reprogram {
+            background: #28a745;
             color: white;
-            margin-left: 10px;
         }
         
-        .btn-secondary:hover {
-            background-color: #5a6268;
+        .btn-reprogram:hover {
+            background: #218838;
+            transform: translateY(-2px);
         }
         
-        .success-message {
-            background-color: #d4edda;
-            color: #155724;
-            padding: 15px;
-            border-radius: 8px;
-            margin-bottom: 20px;
-            text-align: center;
+        .btn:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            transform: none;
         }
         
-        .hidden {
-            display: none;
+        @media (max-width: 480px) {
+            .container {
+                padding: 30px 20px;
+            }
+            
+            .button-group {
+                flex-direction: column;
+            }
+            
+            .logo-image {
+                width: 60px;
+                height: 60px;
+            }
+            
+            .logo-text {
+                font-size: 20px;
+            }
         }
     </style>
 </head>
 <body>
     <div class="container">
-        <header class="header">
-            <div class="logo-container">
-                <img src="logo_negro.png" alt="Barbería Logo" class="logo-image">
-                <h1 class="logo-text">Barbería</h1>
-            </div>
-            <p>Cancelar reserva</p>
-        </header>
+        <div class="logo-container">
+            <img src="/logo_negro.png" alt="Logo Barbería" class="logo-image">
+            <div class="logo-text">Barbería</div>
+        </div>
         
-        <div class="card">
-            <h3>Detalles de tu reserva</h3>
-            <div class="reservation-details">
-                <p><strong>Nombre:</strong> ${reservation.name}</p>
-                <p><strong>Email:</strong> ${reservation.email}</p>
-                <p><strong>Fecha:</strong> ${formattedDate}</p>
-                <p><strong>Hora:</strong> ${reservation.time}</p>
+        <h1>Cancelar Reserva</h1>
+        
+        <div class="reservation-details">
+            <div class="detail-row">
+                <span class="detail-label">Cliente:</span>
+                <span class="detail-value">${reservation.name}</span>
             </div>
-            
-            <div id="cancelForm">
-                <div class="form-group">
-                    <label for="reason">Motivo de cancelación (opcional):</label>
-                    <textarea id="reason" name="reason" placeholder="Cuéntanos por qué cancelas..."></textarea>
-                </div>
-                
-                <button class="btn btn-danger" onclick="cancelReservation()">
-                    Cancelar reserva
-                </button>
-                <a href="${reprogramUrl}" class="btn btn-secondary">
-                    Reprogramar
-                </a>
+            <div class="detail-row">
+                <span class="detail-label">Fecha:</span>
+                <span class="detail-value">${formattedDate}</span>
             </div>
-            
-            <div id="successMessage" class="success-message hidden">
-                <h4>¡Reserva cancelada exitosamente!</h4>
-                <p>Tu reserva ha sido cancelada. Si cambias de opinión, puedes hacer una nueva reserva.</p>
-                <a href="${reprogramUrl}" class="btn btn-secondary" style="margin-top: 15px;">
-                    Hacer nueva reserva
-                </a>
+            <div class="detail-row">
+                <span class="detail-label">Hora:</span>
+                <span class="detail-value">${reservation.time}</span>
             </div>
         </div>
+        
+        <div class="warning">
+            ⚠️ <strong>Atención:</strong> Esta acción no se puede deshacer. La reserva será eliminada permanentemente.
+        </div>
+        
+        <form id="cancelForm">
+            <div class="form-group">
+                <label for="reason">Motivo de cancelación (opcional):</label>
+                <textarea id="reason" name="reason" placeholder="Cuéntanos por qué cancelas la reserva..."></textarea>
+            </div>
+            
+            <div class="button-group">
+                <button type="button" class="btn btn-reprogram" onclick="reprogramar()">
+                    🔄 Reprogramar
+                </button>
+                <button type="submit" class="btn btn-cancel" id="cancelBtn">
+                    ❌ Cancelar Reserva
+                </button>
+            </div>
+        </form>
     </div>
-    
+
     <script>
-        async function cancelReservation() {
+        const token = '${reservation.cancelToken}';
+        
+        document.getElementById('cancelForm').addEventListener('submit', async function(e) {
+            e.preventDefault();
+            
+            const cancelBtn = document.getElementById('cancelBtn');
             const reason = document.getElementById('reason').value;
-            const token = '${reservation.cancelToken}';
+            
+            cancelBtn.disabled = true;
+            cancelBtn.textContent = 'Cancelando...';
             
             try {
                 const response = await fetch('/.netlify/functions/cancel', {
@@ -530,25 +491,165 @@ function generateCancelPage(reservation) {
                     headers: {
                         'Content-Type': 'application/json',
                     },
-                    body: JSON.stringify({
-                        token: token,
-                        reason: reason
-                    })
+                    body: JSON.stringify({ token, reason })
                 });
                 
                 const result = await response.json();
                 
                 if (result.success) {
-                    document.getElementById('cancelForm').classList.add('hidden');
-                    document.getElementById('successMessage').classList.remove('hidden');
+                    alert('✅ Reserva cancelada exitosamente');
+                    window.location.href = '/';
                 } else {
-                    alert('Error: ' + result.message);
+                    alert('❌ Error: ' + result.message);
+                    cancelBtn.disabled = false;
+                    cancelBtn.textContent = '❌ Cancelar Reserva';
                 }
             } catch (error) {
-                alert('Error de conexión. Por favor intenta nuevamente.');
+                alert('❌ Error de conexión');
+                cancelBtn.disabled = false;
+                cancelBtn.textContent = '❌ Cancelar Reserva';
+            }
+        });
+        
+        async function reprogramar() {
+            const cancelBtn = document.getElementById('cancelBtn');
+            const reason = document.getElementById('reason').value || 'Reprogramación solicitada por el cliente';
+            
+            cancelBtn.disabled = true;
+            cancelBtn.textContent = 'Cancelando...';
+            
+            try {
+                const response = await fetch('/.netlify/functions/cancel', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ token, reason })
+                });
+                
+                const result = await response.json();
+                
+                if (result.success) {
+                    const formattedDate = '${reservation.date}';
+                    window.location.href = '/?date=' + formattedDate;
+                } else {
+                    alert('❌ Error: ' + result.message);
+                    cancelBtn.disabled = false;
+                    cancelBtn.textContent = '❌ Cancelar Reserva';
+                }
+            } catch (error) {
+                alert('❌ Error de conexión');
+                cancelBtn.disabled = false;
+                cancelBtn.textContent = '❌ Cancelar Reserva';
             }
         }
     </script>
+</body>
+</html>
+  `;
+}
+
+function createErrorPage(message) {
+  return `
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Error - Barbería</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+        
+        .container {
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
+            padding: 40px;
+            max-width: 500px;
+            width: 100%;
+            text-align: center;
+        }
+        
+        .logo-container {
+            margin-bottom: 30px;
+        }
+        
+        .logo-image {
+            width: 80px;
+            height: 80px;
+            object-fit: cover;
+            border-radius: 50%;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+        }
+        
+        .logo-text {
+            margin-top: 15px;
+            font-size: 24px;
+            font-weight: 700;
+            color: #333;
+        }
+        
+        h1 {
+            color: #dc3545;
+            margin-bottom: 20px;
+            font-size: 28px;
+        }
+        
+        .error-message {
+            background: #f8d7da;
+            border: 1px solid #f5c6cb;
+            border-radius: 10px;
+            padding: 20px;
+            margin: 20px 0;
+            color: #721c24;
+        }
+        
+        .btn {
+            display: inline-block;
+            padding: 15px 30px;
+            background: #667eea;
+            color: white;
+            text-decoration: none;
+            border-radius: 10px;
+            font-weight: 600;
+            transition: all 0.3s ease;
+        }
+        
+        .btn:hover {
+            background: #5a6fd8;
+            transform: translateY(-2px);
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="logo-container">
+            <img src="/logo_negro.png" alt="Logo Barbería" class="logo-image">
+            <div class="logo-text">Barbería</div>
+        </div>
+        
+        <h1>❌ Error</h1>
+        
+        <div class="error-message">
+            ${message}
+        </div>
+        
+        <a href="/" class="btn">🏠 Volver al Inicio</a>
+    </div>
 </body>
 </html>
   `;
