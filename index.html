@@ -1,0 +1,92 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Reservar Turno - Barbería</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <div class="container">
+        <!-- Header -->
+        <header class="header">
+            <div class="logo-container">
+                <img src="logo_negro.png" alt="Barbería Logo" class="logo-image">
+                <h1 class="logo-text">Barbería</h1>
+            </div>
+            <p class="subtitle">Reservar turno</p>
+        </header>
+
+        <!-- Formulario principal -->
+        <main class="main-content">
+            <form id="reservationForm" class="reservation-form">
+                <!-- Campo honeypot para anti-spam -->
+                <input type="text" id="company" name="company" style="display: none;">
+                
+                <div class="form-group">
+                    <label for="name">Nombre completo *</label>
+                    <input type="text" id="name" name="name" required>
+                </div>
+
+                <div class="form-group">
+                    <label for="email">Email *</label>
+                    <input type="email" id="email" name="email" required>
+                </div>
+
+                <div class="form-group">
+                    <label for="date">Fecha *</label>
+                    <input type="date" id="date" name="date" required>
+                </div>
+
+                <button type="submit" class="btn btn-primary" id="searchBtn">
+                    Buscar disponibilidad
+                </button>
+            </form>
+
+            <!-- Contenedor para horarios disponibles -->
+            <div id="availabilityContainer" class="availability-container" style="display: none;">
+                <h3>Horarios disponibles</h3>
+                <div id="timeSlots" class="time-slots"></div>
+            </div>
+
+            <!-- Link de cancelación (oculto inicialmente) -->
+            <div id="linkCancelacion" class="cancel-link-container" style="display: none;">
+                <h4>Link de cancelación</h4>
+                <p>Guarda este link para cancelar tu reserva si es necesario:</p>
+                <a id="cancelUrl" href="#" target="_blank" class="cancel-link"></a>
+            </div>
+
+            <!-- CTA WhatsApp (oculto inicialmente) -->
+            <div id="ctaWhatsapp" class="whatsapp-cta" style="display: none;">
+                <p>¿Tienes alguna pregunta?</p>
+                <a href="https://wa.me/59899123456?text=Hola,%20tengo%20una%20consulta%20sobre%20mi%20reserva" 
+                   target="_blank" class="btn btn-whatsapp">
+                    📱 Contactar por WhatsApp
+                </a>
+            </div>
+        </main>
+
+        <!-- Modal de confirmación -->
+        <div id="confirmationModal" class="modal" style="display: none;">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h3>Confirmar reserva</h3>
+                    <button class="modal-close" id="closeModal">&times;</button>
+                </div>
+                <div class="modal-body">
+                    <div id="reservationDetails"></div>
+                </div>
+                <div class="modal-footer">
+                    <button class="btn btn-secondary" id="cancelReservation">Cancelar</button>
+                    <button class="btn btn-primary" id="confirmReservation">Confirmar reserva</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Overlay para modal -->
+        <div id="modalOverlay" class="modal-overlay" style="display: none;"></div>
+    </div>
+
+    <script src="app.js"></script>
+</body>
+</html>
