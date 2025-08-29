@@ -127,7 +127,7 @@ async function getReservationByToken(token, auth) {
       const row = rows[i];
       console.log(`Fila ${i}: Token=${row[7]}, Status=${row[5]}`);
       
-      if (row[7] === token && row[5] === 'CONFIRMADA') {
+      if (row[7] === token && (row[5] === 'CONFIRMADA' || row[5] === 'PENDIENTE')) {
         console.log('✅ Reserva encontrada:', {
           id: row[0],
           name: row[1],

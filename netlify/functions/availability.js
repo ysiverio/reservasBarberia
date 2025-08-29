@@ -54,7 +54,11 @@ exports.handler = async (event, context) => {
     const dayOfWeek = moment(date).day();
     const noLaborables = process.env.NO_LABORABLES?.split(',').map(Number) || [0];
     
+    console.log(`Día de la semana: ${dayOfWeek} (${moment(date).format('dddd')})`);
+    console.log(`Días no laborables configurados: ${noLaborables.join(', ')}`);
+    
     if (noLaborables.includes(dayOfWeek)) {
+      console.log(`❌ ${moment(date).format('dddd')} (${dayOfWeek}) es un día no laborable`);
       return {
         statusCode: 200,
         headers,
@@ -66,6 +70,8 @@ exports.handler = async (event, context) => {
         })
       };
     }
+    
+    console.log(`✅ ${moment(date).format('dddd')} (${dayOfWeek}) es un día laborable`);
 
     // Verificar si es feriado
     const feriados = process.env.FERIADOS?.split(',') || [];

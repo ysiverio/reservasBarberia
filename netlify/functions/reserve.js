@@ -169,7 +169,13 @@ async function createCalendarEvent(reservation, auth) {
   
   // Crear fecha en zona horaria de Montevideo (UTC-3)
   // Cuando el usuario selecciona 11:00, queremos que aparezca como 11:00 en el calendario
-  const startDateTime = moment(`${reservation.date} ${reservation.time}`, 'YYYY-MM-DD HH:mm');
+  let startDateTime;
+  try {
+    startDateTime = moment.tz(`${reservation.date} ${reservation.time}`, 'YYYY-MM-DD HH:mm', 'America/Montevideo');
+  } catch (error) {
+    // Fallback si moment.tz no está disponible
+    startDateTime = moment(`${reservation.date} ${reservation.time}`, 'YYYY-MM-DD HH:mm');
+  }
   const endDateTime = startDateTime.clone().add(slotMinutes, 'minutes');
   
   const event = {
