@@ -16,6 +16,13 @@ const CONFIG = {
  */
 function onEdit(e) {
   try {
+    // Verificar que el evento tenga las propiedades necesarias
+    if (!e || !e.source) {
+      console.log('Evento onEdit no válido, ejecutando verificación manual...');
+      checkNewReservations();
+      return;
+    }
+    
     const sheet = e.source.getActiveSheet();
     
     // Verificar que sea la hoja correcta
@@ -66,6 +73,57 @@ function onEdit(e) {
     
   } catch (error) {
     console.error('Error en onEdit:', error);
+  }
+}
+
+/**
+ * Función alternativa para verificar nuevas reservas
+ * Se puede ejecutar manualmente o desde un trigger
+ */
+function checkNewReservations() {
+  try {
+    // Obtener la hoja de reservas
+    const spreadsheet = SpreadsheetApp.openById('TU_SPREADSHEET_ID'); // Reemplazar con tu ID
+    const sheet = spreadsheet.getSheetByName(CONFIG.SHEET_NAME);
+    
+    if (!sheet) {
+      console.log(`Hoja "${CONFIG.SHEET_NAME}" no encontrada`);
+      return;
+    }
+    
+    // Obtener todas las filas
+    const data = sheet.getDataRange().getValues();
+    
+    // Procesar solo las filas con status CONFIRMADA
+    for (let i = 1; i < data.length; i++) {
+      const row = data[i];
+      
+      // Verificar que sea una reserva confirmada
+      if (row[5] === 'CONFIRMADA') {
+        // Verificar que tenga todos los datos necesarios
+        if (row[1] && row[2] && row[3] && row[4]) {
+          const reservation = {
+            id: row[0],
+            name: row[1],
+            email: row[2],
+            date: row[3],
+            time: row[4],
+            status: row[5],
+            eventId: row[6],
+            cancelToken: row[7],
+            cancelUrl: row[8],
+            createdAt: row[9]
+          };
+          
+          // Enviar email de confirmación
+          sendConfirmationEmail(reservation);
+          console.log(`Email de confirmación enviado a ${reservation.email} para reserva ${reservation.id}`);
+        }
+      }
+    }
+    
+  } catch (error) {
+    console.error('Error en checkNewReservations:', error);
   }
 }
 

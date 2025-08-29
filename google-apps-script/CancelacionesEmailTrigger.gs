@@ -16,6 +16,13 @@ const CONFIG = {
  */
 function onEdit(e) {
   try {
+    // Verificar que el evento tenga las propiedades necesarias
+    if (!e || !e.source) {
+      console.log('Evento onEdit no válido, ejecutando verificación manual...');
+      checkNewCancellations();
+      return;
+    }
+    
     const sheet = e.source.getActiveSheet();
     
     // Verificar que sea la hoja correcta
@@ -59,6 +66,52 @@ function onEdit(e) {
     
   } catch (error) {
     console.error('Error en onEdit:', error);
+  }
+}
+
+/**
+ * Función alternativa para verificar nuevas cancelaciones
+ * Se puede ejecutar manualmente o desde un trigger
+ */
+function checkNewCancellations() {
+  try {
+    // Obtener la hoja de cancelaciones
+    const spreadsheet = SpreadsheetApp.openById('TU_SPREADSHEET_ID'); // Reemplazar con tu ID
+    const sheet = spreadsheet.getSheetByName(CONFIG.SHEET_NAME);
+    
+    if (!sheet) {
+      console.log(`Hoja "${CONFIG.SHEET_NAME}" no encontrada`);
+      return;
+    }
+    
+    // Obtener todas las filas
+    const data = sheet.getDataRange().getValues();
+    
+    // Procesar solo las filas con datos completos
+    for (let i = 1; i < data.length; i++) {
+      const row = data[i];
+      
+      // Verificar que tenga todos los datos necesarios
+      if (row[1] && row[2] && row[3] && row[4] && row[5]) {
+        const cancellation = {
+          cancelId: row[0],
+          reservationId: row[1],
+          name: row[2],
+          email: row[3],
+          date: row[4],
+          time: row[5],
+          reason: row[6],
+          cancellationDate: row[7]
+        };
+        
+        // Enviar email de cancelación
+        sendCancellationEmail(cancellation);
+        console.log(`Email de cancelación enviado a ${cancellation.email} para reserva ${cancellation.reservationId}`);
+      }
+    }
+    
+  } catch (error) {
+    console.error('Error en checkNewCancellations:', error);
   }
 }
 

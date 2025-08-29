@@ -36,10 +36,11 @@ Este directorio contiene los scripts de Google Apps Script para enviar emails au
 2. Ve a **"Triggers"** (ícono de reloj en el menú izquierdo)
 3. Haz clic en **"Add trigger"**
 4. Configura:
-   - **Choose which function to run**: `onEdit`
+   - **Choose which function to run**: `checkNewReservations`
    - **Choose which deployment should run**: `Head`
-   - **Select event source**: `From spreadsheet`
-   - **Select event type**: `On edit`
+   - **Select event source**: `Time-driven`
+   - **Select type of time based trigger**: `Minutes timer`
+   - **Select minute interval**: `Every 5 minutes`
    - **Select failure notification settings**: `Notify me immediately`
 5. Haz clic en **"Save"**
 
@@ -48,7 +49,14 @@ Este directorio contiene los scripts de Google Apps Script para enviar emails au
 1. En el proyecto "Barbería - Email Cancelaciones"
 2. Ve a **"Triggers"**
 3. Haz clic en **"Add trigger"**
-4. Configura igual que el anterior pero para la hoja "Cancelaciones"
+4. Configura:
+   - **Choose which function to run**: `checkNewCancellations`
+   - **Choose which deployment should run**: `Head`
+   - **Select event source**: `Time-driven`
+   - **Select type of time based trigger**: `Minutes timer`
+   - **Select minute interval**: `Every 5 minutes`
+   - **Select failure notification settings**: `Notify me immediately`
+5. Haz clic en **"Save"**
 
 ### Paso 5: Configurar Permisos
 
@@ -57,17 +65,44 @@ Este directorio contiene los scripts de Google Apps Script para enviar emails au
    - En el script de cancelaciones, ejecuta la función `testCancellationEmail()`
 2. **Autoriza** todos los permisos que solicite Google
 
-### Paso 6: Personalizar Configuración
+### Paso 6: Obtener el ID del Spreadsheet
 
-En cada script, modifica la sección `CONFIG`:
+1. **Abre tu Google Sheet** con las reservas
+2. **Copia la URL** de la barra de direcciones
+3. **Extrae el ID**: La URL tiene este formato:
+   ```
+   https://docs.google.com/spreadsheets/d/TU_ID_AQUI/edit#gid=0
+   ```
+4. **Copia el ID** (la parte entre `/d/` y `/edit`)
 
+### Paso 7: Personalizar Configuración
+
+En cada script, modifica estas secciones:
+
+#### En `ReservasEmailTrigger.gs`:
 ```javascript
 const CONFIG = {
-  SHEET_NAME: 'Reservas', // o 'Cancelaciones'
+  SHEET_NAME: 'Reservas',
   EMAIL_SUBJECT: 'Confirmación de reserva - Barbería',
   EMAIL_FROM: 'Barbería <tu-email@gmail.com>', // Cambiar por tu email
   WEB_APP_BASE_URL: 'https://demo-citas-barberias.netlify.app'
 };
+
+// En la función checkNewReservations(), reemplaza 'TU_SPREADSHEET_ID':
+const spreadsheet = SpreadsheetApp.openById('TU_ID_REAL_AQUI');
+```
+
+#### En `CancelacionesEmailTrigger.gs`:
+```javascript
+const CONFIG = {
+  SHEET_NAME: 'Cancelaciones',
+  EMAIL_SUBJECT: 'Reserva cancelada - Barbería',
+  EMAIL_FROM: 'Barbería <tu-email@gmail.com>', // Cambiar por tu email
+  WEB_APP_BASE_URL: 'https://demo-citas-barberias.netlify.app'
+};
+
+// En la función checkNewCancellations(), reemplaza 'TU_SPREADSHEET_ID':
+const spreadsheet = SpreadsheetApp.openById('TU_ID_REAL_AQUI');
 ```
 
 ## 🧪 Pruebas
