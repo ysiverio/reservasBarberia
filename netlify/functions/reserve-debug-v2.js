@@ -109,6 +109,28 @@ exports.handler = async (event, context) => {
     try {
       const existingReservations = await getReservationsByEmailAndDate(email, date, auth);
       console.log('✅ Paso 4: Reservas existentes verificadas:', existingReservations.length);
+      
+      // Obtener límite de reservas por email por día
+      const maxPerEmail = parseInt(process.env.MAX_RESERVAS_POR_EMAIL_POR_DIA) || 1;
+      console.log(`📊 Límite de reservas por email por día: ${maxPerEmail}`);
+      
+      // Verificar si ya se alcanzó el límite de reservas para este email en esta fecha
+      if (existingReservations.length >= maxPerEmail) {
+        console.log(`❌ Paso 4: Ya se alcanzó el límite de ${maxPerEmail} reserva(s) para este email en esta fecha`);
+        return {
+          statusCode: 400,
+          headers,
+          body: JSON.stringify({
+            success: false,
+            message: `Ya tienes ${existingReservations.length} reserva(s) para esta fecha. Solo se permite ${maxPerEmail} reserva por email por día.`,
+            step: 4,
+            existingReservations: existingReservations.length,
+            maxAllowed: maxPerEmail
+          })
+        };
+      }
+      
+      console.log(`✅ Paso 4: No se ha alcanzado el límite de reservas (${existingReservations.length}/${maxPerEmail})`);
     } catch (error) {
       console.log('❌ Paso 4: Error verificando reservas existentes:', error.message);
       return {
