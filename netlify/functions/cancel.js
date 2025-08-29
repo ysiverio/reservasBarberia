@@ -1,5 +1,6 @@
 const { google } = require('googleapis');
 const moment = require('moment');
+const crypto = require('crypto');
 
 exports.handler = async (event, context) => {
   // Configurar CORS
@@ -222,20 +223,24 @@ async function logCancellation(reservation, reason, auth) {
   const cancelSheetName = process.env.CANCEL_SHEET_NAME || 'Cancelaciones';
   const now = moment().format('YYYY-MM-DD HH:mm:ss');
   
+  // Generar un ID único para la cancelación
+  const cancelId = crypto.randomBytes(16).toString('hex');
+  
   const row = [
-    reservation.id,
-    reservation.name,
-    reservation.email,
-    reservation.date,
-    reservation.time,
-    now,
-    reason || 'Sin motivo especificado'
+    cancelId,                    // A: CancelID
+    reservation.id,              // B: ReservationID
+    reservation.name,            // C: Nombre
+    reservation.email,           // D: Email
+    reservation.date,            // E: Fecha
+    reservation.time,            // F: Hora
+    reason || 'Sin motivo especificado', // G: Motivo
+    now                          // H: FechaCancelacion
   ];
   
   try {
     await sheets.spreadsheets.values.append({
       spreadsheetId: sheetId,
-      range: `${cancelSheetName}!A:G`,
+      range: `${cancelSheetName}!A:H`,
       valueInputOption: 'RAW',
       insertDataOption: 'INSERT_ROWS',
       resource: {

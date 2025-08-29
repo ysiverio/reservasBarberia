@@ -54,8 +54,12 @@ exports.handler = async (event, context) => {
     const dayOfWeek = moment(date).day();
     const noLaborables = process.env.NO_LABORABLES?.split(',').map(Number) || [0];
     
-    console.log(`Día de la semana: ${dayOfWeek} (${moment(date).format('dddd')})`);
-    console.log(`Días no laborables configurados: ${noLaborables.join(', ')}`);
+    console.log(`📅 Fecha recibida: ${date}`);
+    console.log(`📅 Fecha parseada: ${moment(date).format('YYYY-MM-DD')}`);
+    console.log(`📅 Día de la semana: ${dayOfWeek} (${moment(date).format('dddd')})`);
+    console.log(`📅 Días no laborables configurados: ${noLaborables.join(', ')}`);
+    console.log(`📅 ¿Es domingo (0)?: ${dayOfWeek === 0}`);
+    console.log(`📅 ¿Está en no laborables?: ${noLaborables.includes(dayOfWeek)}`);
     
     if (noLaborables.includes(dayOfWeek)) {
       console.log(`❌ ${moment(date).format('dddd')} (${dayOfWeek}) es un día no laborable`);
