@@ -125,10 +125,11 @@ exports.handler = async (event, context) => {
 
     console.log('Enviando email de confirmación...');
     
-    // Enviar email de confirmación
+    // Enviar email de confirmación (temporalmente deshabilitado)
     try {
-      await sendConfirmationEmail(reservation);
-      console.log('✅ Email enviado correctamente');
+      // await sendConfirmationEmail(reservation);
+      console.log('✅ Email temporalmente deshabilitado - reserva creada exitosamente');
+      console.log(`📧 Email que se habría enviado a: ${reservation.email}`);
     } catch (emailError) {
       console.log('❌ Error enviando email:', emailError.message);
       // No fallamos la reserva por error de email
@@ -231,7 +232,7 @@ async function createReservation(data, auth) {
     email: data.email,
     date: data.date,
     time: data.time,
-    status: 'PENDIENTE',
+    status: 'CONFIRMADA',
     eventId: data.eventId,
     cancelToken,
     cancelUrl,
@@ -275,7 +276,13 @@ async function getReservationsByEmailAndDate(email, date, auth) {
 
 async function sendConfirmationEmail(reservation) {
   try {
-    const transporter = nodemailer.createTransporter({
+    // Verificar que nodemailer esté disponible
+    if (!nodemailer || typeof nodemailer.createTransport !== 'function') {
+      console.log('❌ Nodemailer no está disponible correctamente');
+      throw new Error('Nodemailer no está configurado correctamente');
+    }
+    
+    const transporter = nodemailer.createTransport({
       service: 'gmail',
       auth: {
         user: process.env.EMAIL_FROM,
