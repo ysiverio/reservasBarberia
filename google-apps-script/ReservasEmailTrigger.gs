@@ -13,63 +13,14 @@ const CONFIG = {
 
 /**
  * Función que se ejecuta automáticamente cuando se modifica la hoja
+ * Esta función es más simple y confiable
  */
 function onEdit(e) {
   try {
-    // Verificar que el evento tenga las propiedades necesarias
-    if (!e || !e.source) {
-      console.log('Evento onEdit no válido, ejecutando verificación manual...');
-      checkNewReservations();
-      return;
-    }
+    console.log('onEdit ejecutado');
     
-    const sheet = e.source.getActiveSheet();
-    
-    // Verificar que sea la hoja correcta
-    if (sheet.getName() !== CONFIG.SHEET_NAME) {
-      return;
-    }
-    
-    const range = e.range;
-    const row = range.getRow();
-    
-    // Solo procesar si es una nueva fila (fila > 1 para evitar el header)
-    if (row <= 1) {
-      return;
-    }
-    
-    // Obtener los datos de la fila
-    const rowData = sheet.getRange(row, 1, 1, 11).getValues()[0];
-    
-    // Verificar que sea una reserva confirmada
-    if (rowData[5] !== 'CONFIRMADA') {
-      return;
-    }
-    
-    // Verificar que tenga todos los datos necesarios
-    if (!rowData[1] || !rowData[2] || !rowData[3] || !rowData[4]) {
-      console.log('Fila incompleta, no se envía email');
-      return;
-    }
-    
-    // Extraer datos de la reserva
-    const reservation = {
-      id: rowData[0],
-      name: rowData[1],
-      email: rowData[2],
-      date: rowData[3],
-      time: rowData[4],
-      status: rowData[5],
-      eventId: rowData[6],
-      cancelToken: rowData[7],
-      cancelUrl: rowData[8],
-      createdAt: rowData[9]
-    };
-    
-    // Enviar email de confirmación
-    sendConfirmationEmail(reservation);
-    
-    console.log(`Email de confirmación enviado a ${reservation.email} para reserva ${reservation.id}`);
+    // Siempre ejecutar checkNewReservations para mayor confiabilidad
+    checkNewReservations();
     
   } catch (error) {
     console.error('Error en onEdit:', error);
@@ -82,6 +33,8 @@ function onEdit(e) {
  */
 function checkNewReservations() {
   try {
+    console.log('Iniciando verificación de nuevas reservas...');
+    
     // Obtener la hoja de reservas
     const spreadsheet = SpreadsheetApp.openById('TU_SPREADSHEET_ID'); // Reemplazar con tu ID
     const sheet = spreadsheet.getSheetByName(CONFIG.SHEET_NAME);
@@ -93,8 +46,10 @@ function checkNewReservations() {
     
     // Obtener todas las filas
     const data = sheet.getDataRange().getValues();
+    console.log(`Total de filas encontradas: ${data.length}`);
     
     // Procesar solo las filas con status CONFIRMADA
+    let emailsEnviados = 0;
     for (let i = 1; i < data.length; i++) {
       const row = data[i];
       
@@ -115,15 +70,35 @@ function checkNewReservations() {
             createdAt: row[9]
           };
           
-          // Enviar email de confirmación
-          sendConfirmationEmail(reservation);
-          console.log(`Email de confirmación enviado a ${reservation.email} para reserva ${reservation.id}`);
+          // Verificar si ya se envió email (columna 10 - Email Enviado)
+          const emailEnviado = row[10];
+          if (!emailEnviado || emailEnviado !== 'SÍ') {
+            try {
+              // Enviar email de confirmación
+              sendConfirmationEmail(reservation);
+              
+              // Marcar como enviado en la hoja
+              sheet.getRange(i + 1, 11).setValue('SÍ');
+              sheet.getRange(i + 1, 12).setValue(new Date().toISOString());
+              
+              console.log(`✅ Email de confirmación enviado a ${reservation.email} para reserva ${reservation.id}`);
+              emailsEnviados++;
+            } catch (emailError) {
+              console.error(`❌ Error enviando email para reserva ${reservation.id}:`, emailError);
+            }
+          } else {
+            console.log(`⏭️ Email ya enviado para reserva ${reservation.id}`);
+          }
+        } else {
+          console.log(`⚠️ Fila ${i + 1} incompleta, no se envía email`);
         }
       }
     }
     
+    console.log(`📧 Total de emails enviados: ${emailsEnviados}`);
+    
   } catch (error) {
-    console.error('Error en checkNewReservations:', error);
+    console.error('❌ Error en checkNewReservations:', error);
   }
 }
 

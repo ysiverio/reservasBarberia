@@ -122,14 +122,22 @@ const spreadsheet = SpreadsheetApp.openById('TU_ID_REAL_AQUI');
 ## 🔧 Funcionamiento
 
 ### Email de Confirmación:
-- Se ejecuta automáticamente cuando se agrega una nueva fila a la hoja "Reservas"
+- Se ejecuta automáticamente cada 5 minutos verificando la hoja "Reservas"
 - Solo envía email si el status es "CONFIRMADA"
 - Incluye detalles de la reserva y link de cancelación
+- **Evita duplicados**: Marca automáticamente las filas como "Email Enviado"
+- **Columnas agregadas automáticamente**:
+  - Columna K (11): "Email Enviado" - Se marca como "SÍ" cuando se envía
+  - Columna L (12): "Fecha Email" - Timestamp del envío
 
 ### Email de Cancelación:
-- Se ejecuta automáticamente cuando se agrega una nueva fila a la hoja "Cancelaciones"
+- Se ejecuta automáticamente cada 5 minutos verificando la hoja "Cancelaciones"
 - Incluye detalles de la cancelación y motivo
 - Ofrece link para hacer nueva reserva
+- **Evita duplicados**: Marca automáticamente las filas como "Email Enviado"
+- **Columnas agregadas automáticamente**:
+  - Columna I (9): "Email Enviado" - Se marca como "SÍ" cuando se envía
+  - Columna J (10): "Fecha Email" - Timestamp del envío
 
 ## 📧 Personalización de Emails
 

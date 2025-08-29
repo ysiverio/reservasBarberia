@@ -13,56 +13,14 @@ const CONFIG = {
 
 /**
  * Función que se ejecuta automáticamente cuando se modifica la hoja
+ * Esta función es más simple y confiable
  */
 function onEdit(e) {
   try {
-    // Verificar que el evento tenga las propiedades necesarias
-    if (!e || !e.source) {
-      console.log('Evento onEdit no válido, ejecutando verificación manual...');
-      checkNewCancellations();
-      return;
-    }
+    console.log('onEdit ejecutado');
     
-    const sheet = e.source.getActiveSheet();
-    
-    // Verificar que sea la hoja correcta
-    if (sheet.getName() !== CONFIG.SHEET_NAME) {
-      return;
-    }
-    
-    const range = e.range;
-    const row = range.getRow();
-    
-    // Solo procesar si es una nueva fila (fila > 1 para evitar el header)
-    if (row <= 1) {
-      return;
-    }
-    
-    // Obtener los datos de la fila
-    const rowData = sheet.getRange(row, 1, 1, 8).getValues()[0];
-    
-    // Verificar que tenga todos los datos necesarios
-    if (!rowData[1] || !rowData[2] || !rowData[3] || !rowData[4] || !rowData[5]) {
-      console.log('Fila incompleta, no se envía email');
-      return;
-    }
-    
-    // Extraer datos de la cancelación
-    const cancellation = {
-      cancelId: rowData[0],
-      reservationId: rowData[1],
-      name: rowData[2],
-      email: rowData[3],
-      date: rowData[4],
-      time: rowData[5],
-      reason: rowData[6],
-      cancellationDate: rowData[7]
-    };
-    
-    // Enviar email de cancelación
-    sendCancellationEmail(cancellation);
-    
-    console.log(`Email de cancelación enviado a ${cancellation.email} para reserva ${cancellation.reservationId}`);
+    // Siempre ejecutar checkNewCancellations para mayor confiabilidad
+    checkNewCancellations();
     
   } catch (error) {
     console.error('Error en onEdit:', error);
@@ -75,6 +33,8 @@ function onEdit(e) {
  */
 function checkNewCancellations() {
   try {
+    console.log('Iniciando verificación de nuevas cancelaciones...');
+    
     // Obtener la hoja de cancelaciones
     const spreadsheet = SpreadsheetApp.openById('TU_SPREADSHEET_ID'); // Reemplazar con tu ID
     const sheet = spreadsheet.getSheetByName(CONFIG.SHEET_NAME);
@@ -86,8 +46,10 @@ function checkNewCancellations() {
     
     // Obtener todas las filas
     const data = sheet.getDataRange().getValues();
+    console.log(`Total de filas encontradas: ${data.length}`);
     
     // Procesar solo las filas con datos completos
+    let emailsEnviados = 0;
     for (let i = 1; i < data.length; i++) {
       const row = data[i];
       
@@ -104,14 +66,34 @@ function checkNewCancellations() {
           cancellationDate: row[7]
         };
         
-        // Enviar email de cancelación
-        sendCancellationEmail(cancellation);
-        console.log(`Email de cancelación enviado a ${cancellation.email} para reserva ${cancellation.reservationId}`);
+        // Verificar si ya se envió email (columna 8 - Email Enviado)
+        const emailEnviado = row[8];
+        if (!emailEnviado || emailEnviado !== 'SÍ') {
+          try {
+            // Enviar email de cancelación
+            sendCancellationEmail(cancellation);
+            
+            // Marcar como enviado en la hoja
+            sheet.getRange(i + 1, 9).setValue('SÍ');
+            sheet.getRange(i + 1, 10).setValue(new Date().toISOString());
+            
+            console.log(`✅ Email de cancelación enviado a ${cancellation.email} para reserva ${cancellation.reservationId}`);
+            emailsEnviados++;
+          } catch (emailError) {
+            console.error(`❌ Error enviando email de cancelación para ${cancellation.reservationId}:`, emailError);
+          }
+        } else {
+          console.log(`⏭️ Email de cancelación ya enviado para reserva ${cancellation.reservationId}`);
+        }
+      } else {
+        console.log(`⚠️ Fila ${i + 1} incompleta, no se envía email`);
       }
     }
     
+    console.log(`📧 Total de emails de cancelación enviados: ${emailsEnviados}`);
+    
   } catch (error) {
-    console.error('Error en checkNewCancellations:', error);
+    console.error('❌ Error en checkNewCancellations:', error);
   }
 }
 
