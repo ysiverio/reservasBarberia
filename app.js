@@ -246,7 +246,7 @@ async function handleConfirmReservation() {
         confirmReservation.disabled = true;
         confirmReservation.textContent = 'Reservando...';
         
-        const response = await fetch(`${API_BASE}/reserve`, {
+        const response = await fetch(`${API_BASE}/reserve-v2`, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
@@ -318,7 +318,9 @@ function showMessage(message, type = 'info') {
 }
 
 function formatDate(dateString) {
-    const date = new Date(dateString);
+    // Crear fecha en UTC para evitar problemas de zona horaria
+    const [year, month, day] = dateString.split('-');
+    const date = new Date(year, month - 1, day);
     return date.toLocaleDateString('es-ES', {
         weekday: 'long',
         year: 'numeric',
