@@ -13,9 +13,6 @@ function doGet(e) {
     // Validar configuración
     validateConfig();
     
-    // Configurar CORS
-    setCORSHeaders();
-    
     const action = e.parameter.action;
     
     switch (action) {
@@ -42,9 +39,6 @@ function doPost(e) {
   try {
     // Validar configuración
     validateConfig();
-    
-    // Configurar CORS
-    setCORSHeaders();
     
     const action = e.parameter.action;
     
@@ -532,16 +526,14 @@ ${config.emailFromName}
  */
 function setCORSHeaders() {
   const config = getConfig();
-  const origin = Session.getActiveUser().getEmail();
   
-  // En producción, verificar origen permitido
-  if (config.allowedOrigins.includes(origin)) {
-    return ContentService.createTextOutput()
-      .setMimeType(ContentService.MimeType.JSON)
-      .setHeader('Access-Control-Allow-Origin', origin)
-      .setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS')
-      .setHeader('Access-Control-Allow-Headers', 'Content-Type');
-  }
+  // Permitir todos los orígenes para desarrollo
+  // En producción, deberías especificar solo los dominios permitidos
+  return ContentService.createTextOutput()
+    .setMimeType(ContentService.MimeType.JSON)
+    .setHeader('Access-Control-Allow-Origin', '*')
+    .setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS')
+    .setHeader('Access-Control-Allow-Headers', 'Content-Type');
 }
 
 /**
@@ -551,7 +543,10 @@ function setCORSHeaders() {
  */
 function createJSONResponse(data) {
   return ContentService.createTextOutput(JSON.stringify(data))
-    .setMimeType(ContentService.MimeType.JSON);
+    .setMimeType(ContentService.MimeType.JSON)
+    .setHeader('Access-Control-Allow-Origin', '*')
+    .setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS')
+    .setHeader('Access-Control-Allow-Headers', 'Content-Type');
 }
 
 /**
@@ -568,7 +563,10 @@ function createErrorResponse(message, statusCode = 400) {
   
   return ContentService.createTextOutput(JSON.stringify(response))
     .setMimeType(ContentService.MimeType.JSON)
-    .setStatusCode(statusCode);
+    .setStatusCode(statusCode)
+    .setHeader('Access-Control-Allow-Origin', '*')
+    .setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS')
+    .setHeader('Access-Control-Allow-Headers', 'Content-Type');
 }
 
 /**

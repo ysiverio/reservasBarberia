@@ -58,6 +58,7 @@ const WHATSAPP_NUMBER = '59899123456'; // Número de WhatsApp para consultas
 
 // Configuración de CORS
 const ALLOWED_ORIGINS = [
+  'https://demo-citas-barberias.netlify.app',
   'https://tu-dominio.com',
   'https://www.tu-dominio.com',
   'http://localhost:3000', // Para desarrollo local
