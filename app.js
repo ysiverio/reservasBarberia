@@ -277,6 +277,9 @@ async function handleConfirmReservation() {
             closeConfirmationModal();
             showSuccessReservation(data.cancelUrl);
         } else {
+            // Cerrar el modal primero
+            closeConfirmationModal();
+            
             // Mostrar el mensaje de error específico del backend
             const errorMessage = data.message || 'Error al crear la reserva.';
             showMessage(errorMessage, 'error');
@@ -320,6 +323,10 @@ function showMessage(message, type = 'info') {
     const messageElement = document.createElement('div');
     messageElement.className = `message ${type}`;
     messageElement.textContent = message;
+    
+    // Asegurar que el mensaje esté visible por encima de otros elementos
+    messageElement.style.zIndex = '9999';
+    messageElement.style.position = 'relative';
     
     // Insertar después del header
     const header = document.querySelector('.header');
