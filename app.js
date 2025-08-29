@@ -246,7 +246,7 @@ async function handleConfirmReservation() {
         confirmReservation.disabled = true;
         confirmReservation.textContent = 'Reservando...';
         
-        const response = await fetch(`${API_BASE}/reserve-debug`, {
+        const response = await fetch(`${API_BASE}/reserve`, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',

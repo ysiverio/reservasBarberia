@@ -95,7 +95,9 @@ exports.handler = async (event, context) => {
       headers,
       body: JSON.stringify({
         success: false,
-        message: 'Error creando reserva'
+        message: 'Error creando reserva',
+        error: error.message,
+        stack: error.stack
       })
     };
   }
@@ -140,7 +142,7 @@ async function createReservation(data) {
   
   const id = crypto.randomBytes(16).toString('hex');
   const cancelToken = crypto.randomBytes(32).toString('hex');
-  const cancelUrl = `${process.env.URL}/.netlify/functions/cancel?token=${cancelToken}`;
+  const cancelUrl = `${process.env.URL || 'https://demo-citas-barberias.netlify.app'}/.netlify/functions/cancel?token=${cancelToken}`;
   const now = moment().format('YYYY-MM-DD HH:mm:ss');
   
   const row = [
