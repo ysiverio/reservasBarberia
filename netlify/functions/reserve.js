@@ -27,10 +27,47 @@ exports.handler = async (event, context) => {
   }
 
   try {
-    const { name, email, date, time } = JSON.parse(event.body);
+    console.log('=== INICIO DE RESERVE ===');
+    console.log('Event body:', event.body);
+    console.log('Event body type:', typeof event.body);
+    console.log('Event body length:', event.body ? event.body.length : 'undefined');
+    
+    // Verificar que el body no esté vacío
+    if (!event.body || event.body.trim() === '') {
+      console.log('❌ Body está vacío');
+      return {
+        statusCode: 400,
+        headers,
+        body: JSON.stringify({
+          success: false,
+          message: 'Datos de reserva no recibidos'
+        })
+      };
+    }
+    
+    // Parsear el body
+    let body;
+    try {
+      body = JSON.parse(event.body);
+      console.log('✅ JSON parseado correctamente:', body);
+    } catch (parseError) {
+      console.log('❌ Error parseando JSON:', parseError.message);
+      console.log('Body recibido:', event.body);
+      return {
+        statusCode: 400,
+        headers,
+        body: JSON.stringify({
+          success: false,
+          message: 'Datos de reserva mal formateados'
+        })
+      };
+    }
+    
+    const { name, email, date, time } = body;
     
     // Validar datos requeridos
     if (!name || !email || !date || !time) {
+      console.log('❌ Datos faltantes:', { name: !!name, email: !!email, date: !!date, time: !!time });
       return {
         statusCode: 400,
         headers,
@@ -40,6 +77,8 @@ exports.handler = async (event, context) => {
         })
       };
     }
+
+    console.log('✅ Datos válidos recibidos');
 
     // Validar email
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -54,8 +93,19 @@ exports.handler = async (event, context) => {
       };
     }
 
+    console.log('Configurando autenticación de Google...');
+    
+    // Configurar autenticación de Google
+    const auth = new google.auth.GoogleAuth({
+      credentials: JSON.parse(process.env.GOOGLE_CREDENTIALS),
+      scopes: ['https://www.googleapis.com/auth/calendar', 'https://www.googleapis.com/auth/spreadsheets']
+    });
+
+    console.log('✅ Autenticación de Google configurada');
+    console.log('Verificando reservas existentes...');
+    
     // Verificar límites de reservas
-    const existingReservations = await getReservationsByEmailAndDate(email, date);
+    const existingReservations = await getReservationsByEmailAndDate(email, date, auth);
     const maxPerEmail = parseInt(process.env.MAX_RESERVAS_POR_EMAIL_POR_DIA) || 2;
     
     if (existingReservations.length >= maxPerEmail) {
@@ -69,14 +119,22 @@ exports.handler = async (event, context) => {
       };
     }
 
+    console.log('Creando evento en calendario...');
+    
     // Crear evento en calendario
-    const eventId = await createCalendarEvent({ name, email, date, time });
+    const eventId = await createCalendarEvent({ name, email, date, time }, auth);
 
+    console.log('Guardando en Sheets...');
+    
     // Guardar en Sheets
-    const reservation = await createReservation({ name, email, date, time, eventId });
+    const reservation = await createReservation({ name, email, date, time, eventId }, auth);
 
+    console.log('Enviando email de confirmación...');
+    
     // Enviar email de confirmación
     await sendConfirmationEmail(reservation);
+
+    console.log('✅ Reserva creada exitosamente');
 
     return {
       statusCode: 200,
