@@ -156,9 +156,9 @@ async function getAvailableSlots(date) {
     const start = moment(event.start.dateTime || event.start.date);
     const end = moment(event.end.dateTime || event.end.date);
     
-    // Convertir a la zona horaria local para comparar correctamente
-    const localStart = start.tz('America/Montevideo');
-    const localEnd = end.tz('America/Montevideo');
+    // Convertir a hora local (Montevideo está en UTC-3)
+    const localStart = start.clone().subtract(3, 'hours');
+    const localEnd = end.clone().subtract(3, 'hours');
     
     console.log(`Evento local: ${localStart.format('HH:mm')} a ${localEnd.format('HH:mm')}`);
     
