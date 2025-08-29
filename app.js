@@ -1,5 +1,5 @@
 // Configuración de la API
-const API_BASE = 'http://localhost:3000'; // URL del backend Node.js
+const API_BASE = '/.netlify/functions'; // URL de las Netlify Functions
 
 // Variables globales
 let selectedTimeSlot = null;
