@@ -271,17 +271,16 @@ async function handleConfirmReservation() {
             body: JSON.stringify(currentReservation)
         });
         
-        if (!response.ok) {
-            throw new Error(`HTTP error! status: ${response.status}`);
-        }
-        
         const data = await response.json();
         
-        if (data.success) {
+        if (response.ok && data.success) {
             closeConfirmationModal();
             showSuccessReservation(data.cancelUrl);
         } else {
-            showMessage(data.message || 'Error al crear la reserva.', 'error');
+            // Mostrar el mensaje de error específico del backend
+            const errorMessage = data.message || 'Error al crear la reserva.';
+            showMessage(errorMessage, 'error');
+            console.log('Error del backend:', data);
         }
     } catch (error) {
         console.error('Error creating reservation:', error);
