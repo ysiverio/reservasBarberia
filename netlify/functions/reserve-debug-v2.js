@@ -17,6 +17,31 @@ exports.handler = async (event, context) => {
   try {
     console.log('=== INICIO DE RESERVE-DEBUG-V2 ===');
     console.log('Event body:', event.body);
+    console.log('Event body type:', typeof event.body);
+    console.log('Event body length:', event.body ? event.body.length : 'undefined');
+    console.log('Event headers:', event.headers);
+    console.log('Event httpMethod:', event.httpMethod);
+    
+    // Verificar que el body no esté vacío
+    if (!event.body || event.body.trim() === '') {
+      console.log('❌ Body está vacío');
+      return {
+        statusCode: 400,
+        headers,
+        body: JSON.stringify({
+          success: false,
+          message: 'Body está vacío',
+          step: 0,
+          eventInfo: {
+            body: event.body,
+            bodyType: typeof event.body,
+            bodyLength: event.body ? event.body.length : 'undefined',
+            headers: event.headers,
+            httpMethod: event.httpMethod
+          }
+        })
+      };
+    }
     
     // Paso 1: Parsear JSON
     let body;
@@ -25,6 +50,7 @@ exports.handler = async (event, context) => {
       console.log('✅ Paso 1: JSON parseado correctamente:', body);
     } catch (error) {
       console.log('❌ Paso 1: Error parseando JSON:', error.message);
+      console.log('Body recibido:', event.body);
       return {
         statusCode: 400,
         headers,
@@ -32,7 +58,10 @@ exports.handler = async (event, context) => {
           success: false,
           message: 'Error parseando JSON',
           step: 1,
-          error: error.message
+          error: error.message,
+          bodyReceived: event.body,
+          bodyType: typeof event.body,
+          bodyLength: event.body ? event.body.length : 'undefined'
         })
       };
     }
