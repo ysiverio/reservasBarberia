@@ -174,10 +174,7 @@ async function createCalendarEvent(reservation, auth) {
       dateTime: endDateTime.toISOString(),
       timeZone: 'America/Montevideo'
     },
-    transparency: 'transparent',
-    attendees: [
-      { email: reservation.email }
-    ]
+    transparency: 'transparent'
   };
   
   const response = await calendar.events.insert({
