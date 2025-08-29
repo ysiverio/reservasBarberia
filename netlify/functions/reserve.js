@@ -126,7 +126,13 @@ exports.handler = async (event, context) => {
     console.log('Enviando email de confirmación...');
     
     // Enviar email de confirmación
-    await sendConfirmationEmail(reservation);
+    try {
+      await sendConfirmationEmail(reservation);
+      console.log('✅ Email enviado correctamente');
+    } catch (emailError) {
+      console.log('❌ Error enviando email:', emailError.message);
+      // No fallamos la reserva por error de email
+    }
 
     console.log('✅ Reserva creada exitosamente');
 
@@ -160,7 +166,8 @@ async function createCalendarEvent(reservation, auth) {
   const calendarId = process.env.GOOGLE_CALENDAR_ID;
   const slotMinutes = parseInt(process.env.SLOT_MINUTES) || 30;
   
-  const startDateTime = moment(`${reservation.date} ${reservation.time}`, 'YYYY-MM-DD HH:mm');
+  // Crear fecha en zona horaria de Montevideo (UTC-3)
+  const startDateTime = moment.tz(`${reservation.date} ${reservation.time}`, 'YYYY-MM-DD HH:mm', 'America/Montevideo');
   const endDateTime = startDateTime.clone().add(slotMinutes, 'minutes');
   
   const event = {
@@ -200,7 +207,7 @@ async function createReservation(data, auth) {
     data.email,
     data.date,
     data.time,
-    'PENDIENTE',
+    'CONFIRMADA', // Cambiado de 'PENDIENTE' a 'CONFIRMADA' para mayor claridad
     data.eventId || '',
     cancelToken,
     cancelUrl,
@@ -247,7 +254,7 @@ async function getReservationsByEmailAndDate(email, date, auth) {
     
     for (let i = 1; i < rows.length; i++) {
       const row = rows[i];
-      if (row[2] === email && row[3] === date && row[5] === 'PENDIENTE') {
+      if (row[2] === email && row[3] === date && row[5] === 'CONFIRMADA') {
         reservations.push({
           id: row[0],
           name: row[1],

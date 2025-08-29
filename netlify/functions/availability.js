@@ -209,7 +209,7 @@ async function getReservationsForDate(date) {
     
     for (let i = 1; i < rows.length; i++) {
       const row = rows[i];
-      if (row[3] === date && row[5] === 'PENDIENTE') {
+      if (row[3] === date && row[5] === 'CONFIRMADA') {
         reservations.push({
           id: row[0],
           name: row[1],
