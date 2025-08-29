@@ -284,8 +284,8 @@ function showSuccessReservation(cancelUrl) {
     showMessage('¡Reserva creada exitosamente! Revisa tu email para confirmar.', 'success');
     
     // Mostrar link de cancelación
-    cancelUrl.href = cancelUrl;
-    cancelUrl.textContent = cancelUrl;
+    document.getElementById('cancelUrl').href = cancelUrl;
+    document.getElementById('cancelUrl').textContent = cancelUrl;
     linkCancelacion.style.display = 'block';
     
     // Mostrar CTA WhatsApp
