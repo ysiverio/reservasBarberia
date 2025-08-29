@@ -1,5 +1,5 @@
 // Configuración de la API
-const API_BASE = 'https://script.google.com/macros/s/AKfycbzoIOgiiX1DZTxcFUXlrHXMXlDh080jiRN1mJsWMhQCpnVm-9TFabnR7WOvzr94WiwtGQ/exec'; // Reemplazar con la URL del Web App de GAS
+const API_BASE = 'http://localhost:3000'; // URL del backend Node.js
 
 // Variables globales
 let selectedTimeSlot = null;
@@ -140,7 +140,7 @@ async function fetchAvailability(date) {
         searchBtn.disabled = true;
         searchBtn.textContent = 'Buscando...';
         
-        const response = await fetch(`${API_BASE}?action=availability&date=${date}`);
+        const response = await fetch(`${API_BASE}/availability?date=${date}`);
         
         if (!response.ok) {
             throw new Error(`HTTP error! status: ${response.status}`);
@@ -246,7 +246,7 @@ async function handleConfirmReservation() {
         confirmReservation.disabled = true;
         confirmReservation.textContent = 'Reservando...';
         
-        const response = await fetch(`${API_BASE}?action=reserve`, {
+        const response = await fetch(`${API_BASE}/reserve`, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
