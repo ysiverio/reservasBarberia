@@ -249,7 +249,7 @@ async function handleConfirmReservation() {
         console.log('Enviando reserva:', currentReservation);
         console.log('JSON a enviar:', JSON.stringify(currentReservation));
         
-        const response = await fetch(`${API_BASE}/reserve-v2`, {
+        const response = await fetch(`${API_BASE}/reserve-simple`, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
