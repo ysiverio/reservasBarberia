@@ -3,12 +3,6 @@ const crypto = require('crypto');
 const moment = require('moment');
 const nodemailer = require('nodemailer');
 
-// Configurar autenticación de Google
-const auth = new google.auth.GoogleAuth({
-  credentials: JSON.parse(process.env.GOOGLE_CREDENTIALS),
-  scopes: ['https://www.googleapis.com/auth/calendar', 'https://www.googleapis.com/auth/spreadsheets']
-});
-
 exports.handler = async (event, context) => {
   // Configurar CORS
   const headers = {
@@ -161,7 +155,7 @@ exports.handler = async (event, context) => {
   }
 };
 
-async function createCalendarEvent(reservation) {
+async function createCalendarEvent(reservation, auth) {
   const calendar = google.calendar({ version: 'v3', auth });
   const calendarId = process.env.GOOGLE_CALENDAR_ID;
   const slotMinutes = parseInt(process.env.SLOT_MINUTES) || 30;
@@ -194,7 +188,7 @@ async function createCalendarEvent(reservation) {
   return response.data.id;
 }
 
-async function createReservation(data) {
+async function createReservation(data, auth) {
   const sheets = google.sheets({ version: 'v4', auth });
   const sheetId = process.env.GOOGLE_SHEET_ID;
   
@@ -241,7 +235,7 @@ async function createReservation(data) {
   };
 }
 
-async function getReservationsByEmailAndDate(email, date) {
+async function getReservationsByEmailAndDate(email, date, auth) {
   const sheets = google.sheets({ version: 'v4', auth });
   const sheetId = process.env.GOOGLE_SHEET_ID;
   
