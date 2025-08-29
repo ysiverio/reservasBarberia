@@ -115,6 +115,10 @@ async function getAvailableSlots(date) {
   const workStart = process.env.WORK_START || '09:00';
   const workEnd = process.env.WORK_END || '18:00';
   
+  console.log(`Buscando disponibilidad para ${date}`);
+  console.log(`Horario de trabajo: ${workStart} - ${workEnd}`);
+  console.log(`Duración de slot: ${slotMinutes} minutos`);
+  
   // Generar todos los slots posibles
   const allSlots = [];
   const startTime = moment(date + ' ' + workStart, 'YYYY-MM-DD HH:mm');
@@ -126,9 +130,13 @@ async function getAvailableSlots(date) {
     currentTime.add(slotMinutes, 'minutes');
   }
   
+  console.log(`Slots totales generados: ${allSlots.join(', ')}`);
+  
   // Obtener eventos del calendario
   const startOfDay = moment(date).startOf('day').toISOString();
   const endOfDay = moment(date).endOf('day').toISOString();
+  
+  console.log(`Buscando eventos entre ${startOfDay} y ${endOfDay}`);
   
   const response = await calendar.events.list({
     calendarId: calendarId,
@@ -138,28 +146,52 @@ async function getAvailableSlots(date) {
     orderBy: 'startTime'
   });
   
+  console.log(`Eventos encontrados: ${response.data.items.length}`);
+  
   // Obtener slots ocupados
   const occupiedSlots = [];
   response.data.items.forEach(event => {
+    console.log(`Evento: ${event.summary} - ${event.start.dateTime} a ${event.end.dateTime}`);
+    
     const start = moment(event.start.dateTime || event.start.date);
     const end = moment(event.end.dateTime || event.end.date);
     
-    let current = start.clone();
-    while (current.isBefore(end)) {
-      occupiedSlots.push(current.format('HH:mm'));
+    // Convertir a la zona horaria local para comparar correctamente
+    const localStart = start.tz('America/Montevideo');
+    const localEnd = end.tz('America/Montevideo');
+    
+    console.log(`Evento local: ${localStart.format('HH:mm')} a ${localEnd.format('HH:mm')}`);
+    
+    // Generar todos los slots que este evento ocupa
+    let current = localStart.clone();
+    while (current.isBefore(localEnd)) {
+      const slotTime = current.format('HH:mm');
+      occupiedSlots.push(slotTime);
+      console.log(`Slot ocupado: ${slotTime}`);
       current.add(slotMinutes, 'minutes');
     }
   });
   
+  console.log(`Slots ocupados: ${occupiedSlots.join(', ')}`);
+  
   // Filtrar slots disponibles
   const availableSlots = allSlots.filter(slot => !occupiedSlots.includes(slot));
+  
+  console.log(`Slots disponibles antes de límite: ${availableSlots.join(', ')}`);
   
   // Aplicar límite de reservas por día
   const maxReservasPorDia = parseInt(process.env.MAX_RESERVAS_POR_DIA) || 12;
   const existingReservations = await getReservationsForDate(date);
   const maxSlots = maxReservasPorDia - existingReservations.length;
   
-  return availableSlots.slice(0, Math.max(0, maxSlots));
+  console.log(`Reservas existentes en Sheets: ${existingReservations.length}`);
+  console.log(`Máximo slots disponibles: ${maxSlots}`);
+  
+  const finalSlots = availableSlots.slice(0, Math.max(0, maxSlots));
+  
+  console.log(`Slots finales disponibles: ${finalSlots.join(', ')}`);
+  
+  return finalSlots;
 }
 
 async function getReservationsForDate(date) {
