@@ -68,8 +68,15 @@ function setupDatePicker() {
     
     // Bloquear domingos y feriados
     dateInput.addEventListener('change', function() {
-        const selectedDate = new Date(this.value);
-        const dayOfWeek = selectedDate.getDay();
+        const selectedDate = this.value; // Usar el valor directamente
+        console.log('📅 Fecha seleccionada en frontend:', selectedDate);
+        
+        // Crear fecha en UTC para evitar problemas de zona horaria
+        const [year, month, day] = selectedDate.split('-').map(Number);
+        const utcDate = new Date(Date.UTC(year, month - 1, day));
+        const dayOfWeek = utcDate.getUTCDay();
+        
+        console.log('📅 Día de la semana (UTC):', dayOfWeek, getDayName(dayOfWeek));
         
         // Verificar si es domingo
         if (dayOfWeek === 0) {
@@ -80,12 +87,19 @@ function setupDatePicker() {
         
         // Verificar si es feriado (lista simplificada)
         const feriados = ['2025-01-01', '2025-04-18', '2025-05-01', '2025-06-19', '2025-07-18', '2025-08-25', '2025-12-25'];
-        if (feriados.includes(this.value)) {
+        if (feriados.includes(selectedDate)) {
             showMessage('Esta fecha es un feriado. Por favor selecciona otro día.', 'error');
             this.value = '';
             return;
         }
+        
+        console.log('✅ Fecha válida seleccionada:', selectedDate);
     });
+}
+
+function getDayName(dayOfWeek) {
+    const days = ['Domingo', 'Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado'];
+    return days[dayOfWeek];
 }
 
 async function handleFormSubmit(e) {
