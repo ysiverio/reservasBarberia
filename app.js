@@ -246,6 +246,9 @@ async function handleConfirmReservation() {
         confirmReservation.disabled = true;
         confirmReservation.textContent = 'Reservando...';
         
+        console.log('Enviando reserva:', currentReservation);
+        console.log('JSON a enviar:', JSON.stringify(currentReservation));
+        
         const response = await fetch(`${API_BASE}/reserve-v2`, {
             method: 'POST',
             headers: {

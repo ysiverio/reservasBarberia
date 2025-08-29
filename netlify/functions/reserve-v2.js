@@ -20,9 +20,40 @@ exports.handler = async (event, context) => {
 
   try {
     console.log('Iniciando proceso de reserva...');
+    console.log('Event body:', event.body);
+    console.log('Event body type:', typeof event.body);
+    console.log('Event body length:', event.body ? event.body.length : 'undefined');
+    
+    // Verificar que el body no esté vacío
+    if (!event.body || event.body.trim() === '') {
+      console.log('Body está vacío');
+      return {
+        statusCode: 400,
+        headers,
+        body: JSON.stringify({
+          success: false,
+          message: 'Datos de reserva no recibidos'
+        })
+      };
+    }
     
     // Parsear el body
-    const body = JSON.parse(event.body);
+    let body;
+    try {
+      body = JSON.parse(event.body);
+    } catch (parseError) {
+      console.log('Error parseando JSON:', parseError.message);
+      console.log('Body recibido:', event.body);
+      return {
+        statusCode: 400,
+        headers,
+        body: JSON.stringify({
+          success: false,
+          message: 'Datos de reserva mal formateados'
+        })
+      };
+    }
+    
     console.log('Datos recibidos:', { name: body.name, email: body.email, date: body.date, time: body.time });
     
     const { name, email, date, time } = body;
