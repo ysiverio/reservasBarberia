@@ -1,5 +1,5 @@
 // Configuración de la API
-const API_BASE = 'https://script.google.com/macros/s/AKfycbwXffYfJZSOfSZfPgvI3RznCGf08b2ODLQP-vMtT9bHABLe70Wlp5UIB9KNTMbKWmz6/exec'; // Reemplazar con la URL del Web App de GAS
+const API_BASE = 'https://script.google.com/macros/s/AKfycbwnce7lVhbwOgVXlP7H3mPrjmuVnioqhsGVFKjNQw19VnKlgfVZVLTitREqw7la_E7zRg/exec'; // Reemplazar con la URL del Web App de GAS
 
 // Variables globales
 let selectedTimeSlot = null;
