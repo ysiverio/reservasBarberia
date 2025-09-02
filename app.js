@@ -107,7 +107,8 @@ document.addEventListener('DOMContentLoaded', () => {
         throw new Error(data.error || 'Error al confirmar la reserva.');
       }
 
-      displayFinalConfirmation();
+      // Pasamos el ID de la reserva a la función de confirmación
+      displayFinalConfirmation(data.reservationId);
 
     } catch (error) {
       console.error('Error confirming reservation:', error);
@@ -125,11 +126,20 @@ document.addEventListener('DOMContentLoaded', () => {
     timeSlotsContainer.innerHTML = `<p class="text-danger">${message}</p>`;
   }
 
-  function displayFinalConfirmation() {
+  function displayFinalConfirmation(reservationId) {
+    const finalConfirmationContainer = document.getElementById('linkCancelacion');
+    const cancelUrlLink = document.getElementById('cancelUrl');
+    const ctaWhatsappContainer = document.getElementById('ctaWhatsapp');
+
+    const cancelLink = `${window.location.origin}/cancel.html?id=${reservationId}`;
+    
+    cancelUrlLink.href = cancelLink;
+    cancelUrlLink.textContent = cancelLink;
+
     reservationForm.style.display = 'none';
     availabilityContainer.style.display = 'none';
-    finalConfirmationContainer.innerHTML = '<h3>¡Reserva confirmada!</h3><p>Recibirás un correo con los detalles. ¡Gracias!</p>';
     finalConfirmationContainer.style.display = 'block';
+    ctaWhatsappContainer.style.display = 'block'; // Mostramos el CTA de WhatsApp
   }
 
   function showModal() {
