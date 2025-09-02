@@ -1,0 +1,28 @@
+Sep 2, 03:09:59 AM: 0fbeba08 INFO   Buscando reservaciones en Firestore para la fecha: 2025-09-02Sep 2, 03:09:59 AM: 0fbeba08 ERROR  Error en get-reservations: Error: 9 FAILED_PRECONDITION: The query requires an index. You can create it here: https://console.firebase.google.com/v1/r/project/agendas-f4494/firestore/indexes?create_composite=ClJwcm9qZWN0cy9hZ2VuZGFzLWY0NDk0L2RhdGFiYXNlcy8oZGVmYXVsdCkvY29sbGVjdGlvbkdyb3Vwcy9yZXNlcnZhdGlvbnMvaW5kZXhlcy9fEAEaCAoEZGF0ZRABGggKBHRpbWUQARoMCghfX25hbWVfXxAB
+    at callErrorFromStatus (/var/task/node_modules/@grpc/grpc-js/build/src/call.js:31:19)
+    at Object.onReceiveStatus (/var/task/node_modules/@grpc/grpc-js/build/src/client.js:357:73)
+    at Object.onReceiveStatus (/var/task/node_modules/@grpc/grpc-js/build/src/client-interceptors.js:323:181)
+    at /var/task/node_modules/@grpc/grpc-js/build/src/resolving-call.js:94:78
+    at process.processTicksAndRejections (node:internal/process/task_queues:85:11)
+for call at
+    at ServiceClientImpl.makeServerStreamRequest (/var/task/node_modules/@grpc/grpc-js/build/src/client.js:340:32)
+    at ServiceClientImpl.<anonymous> (/var/task/node_modules/@grpc/grpc-js/build/src/make-client.js:105:19)
+    at /var/task/node_modules/@google-cloud/firestore/build/src/v1/firestore_client.js:227:29
+    at /var/task/node_modules/google-gax/build/src/streamingCalls/streamingApiCaller.js:38:28
+    at /var/task/node_modules/google-gax/build/src/normalCalls/timeout.js:44:16
+    at Object.request (/var/task/node_modules/google-gax/build/src/streamingCalls/streaming.js:130:40)
+    at makeRequest (/var/task/node_modules/retry-request/index.js:141:28)
+    at retryRequest (/var/task/node_modules/retry-request/index.js:109:5)
+    at StreamProxy.setStream (/var/task/node_modules/google-gax/build/src/streamingCalls/streaming.js:121:37)
+    at StreamingApiCaller.call (/var/task/node_modules/google-gax/build/src/streamingCalls/streamingApiCaller.js:54:16)
+Caused by: Error
+    at Query._get (/var/task/node_modules/@google-cloud/firestore/build/src/reference.js:1738:23)
+    at Query.get (/var/task/node_modules/@google-cloud/firestore/build/src/reference.js:1726:21)
+    at exports.handler (/var/task/netlify/functions/get-reservations.js:35:119) {
+  code: 9,
+  details: 'The query requires an index. You can create it here: https://console.firebase.google.com/v1/r/project/agendas-f4494/firestore/indexes?create_composite=ClJwcm9qZWN0cy9hZ2VuZGFzLWY0NDk0L2RhdGFiYXNlcy8oZGVmYXVsdCkvY29sbGVjdGlvbkdyb3Vwcy9yZXNlcnZhdGlvbnMvaW5kZXhlcy9fEAEaCAoEZGF0ZRABGggKBHRpbWUQARoMCghfX25hbWVfXxAB',
+  metadata: Metadata {
+    internalRepr: Map(1) { 'x-debug-tracking-id' => [Array] },
+    options: {}
+  }
+}

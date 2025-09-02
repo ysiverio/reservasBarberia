@@ -1,6 +1,7 @@
 document.addEventListener('DOMContentLoaded', () => {
   const confirmCancelBtn = document.getElementById('confirm-cancel-btn');
   const responseMessage = document.getElementById('response-message');
+  const cancellationReasonInput = document.getElementById('cancellation-reason');
 
   // Obtener el ID de la reserva desde la URL
   const params = new URLSearchParams(window.location.search);
@@ -18,11 +19,13 @@ document.addEventListener('DOMContentLoaded', () => {
     responseMessage.textContent = 'Cancelando tu reserva...';
     responseMessage.className = 'text-info';
 
+    const cancellationReason = cancellationReasonInput.value.trim();
+
     try {
       const response = await fetch('/.netlify/functions/cancel', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ id: reservationId })
+        body: JSON.stringify({ id: reservationId, reason: cancellationReason })
       });
 
       const data = await response.json();

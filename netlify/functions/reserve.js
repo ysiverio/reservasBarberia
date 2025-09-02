@@ -33,7 +33,8 @@ exports.handler = async function(event, context) {
     const emailPayload = {
       ...reservationData,
       businessName: config.businessName,
-      secretToken: APPS_SCRIPT_SECRET
+      secretToken: APPS_SCRIPT_SECRET,
+      type: 'reservation' // <-- Añadimos el tipo de operación
     };
 
     const response = await fetch(APPS_SCRIPT_URL, {
