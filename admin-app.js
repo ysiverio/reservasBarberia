@@ -2,13 +2,14 @@ document.addEventListener('DOMContentLoaded', () => {
   // --- CONFIGURACIÓN DE FIREBASE (CLIENTE) ---
   // IMPORTANTE: Reemplaza esto con la configuración de tu proyecto de Firebase.
   const firebaseConfig = {
-    apiKey: "TU_API_KEY",
-    authDomain: "TU_PROJECT_ID.firebaseapp.com",
-    projectId: "TU_PROJECT_ID",
-    storageBucket: "TU_PROJECT_ID.appspot.com",
-    messagingSenderId: "TU_SENDER_ID",
-    appId: "TU_APP_ID"
-  };
+  apiKey: "AIzaSyBe-74tJkrXFE_1ZCYHzyHs21ebc14NF-8",
+  authDomain: "agendas-f4494.firebaseapp.com",
+  projectId: "agendas-f4494",
+  storageBucket: "agendas-f4494.firebasestorage.app",
+  messagingSenderId: "1077527875604",
+  appId: "1:1077527875604:web:f9c6618f2da684244d9701",
+  measurementId: "G-K7092NNLYG"
+};
 
   // Inicializar Firebase
   firebase.initializeApp(firebaseConfig);
