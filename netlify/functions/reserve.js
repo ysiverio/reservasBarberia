@@ -1,40 +1,53 @@
-const EmailService = require('./lib/EmailService');
+const fetch = require('node-fetch');
+const config = require('./lib/config.json');
 
 exports.handler = async function(event, context) {
-  console.log('Iniciando la función reserve.js');
+  console.log('Iniciando la función reserve.js v2 (con llamada a Google Apps Script)');
 
   if (event.httpMethod !== 'POST') {
-    console.log('Método HTTP no permitido:', event.httpMethod);
     return { statusCode: 405, body: 'Method Not Allowed' };
   }
 
+  const { APPS_SCRIPT_URL, APPS_SCRIPT_SECRET } = process.env;
+
+  if (!APPS_SCRIPT_URL || !APPS_SCRIPT_SECRET) {
+    console.error('Error: Faltan las variables de entorno APPS_SCRIPT_URL o APPS_SCRIPT_SECRET.');
+    return { statusCode: 500, body: JSON.stringify({ error: 'Error de configuración del servidor.' }) };
+  }
+
   try {
-    console.log('Payload recibido:', event.body);
     const reservation = JSON.parse(event.body);
-    console.log('Payload parseado correctamente.', reservation);
+    console.log('Reserva recibida:', reservation);
 
-    // Añadir una URL de cancelación de ejemplo
-    reservation.cancelUrl = `https://demo-citas-barberias.netlify.app/cancel?id=${Math.random().toString(36).substring(2, 15)}`;
-    console.log('URL de cancelación generada:', reservation.cancelUrl);
+    // Añadimos el nombre del negocio a los datos que enviaremos a Google
+    const payload = {
+      ...reservation,
+      businessName: config.businessName
+    };
 
-    console.log('Creando una nueva instancia de EmailService...');
-    const emailService = new EmailService();
-    console.log('Instancia de EmailService creada.');
+    console.log('Enviando datos a Google Apps Script...');
 
-    console.log('Enviando email de confirmación...');
-    const result = await emailService.sendConfirmationEmail(reservation);
-    console.log('Respuesta del servicio de email:', result);
+    const response = await fetch(APPS_SCRIPT_URL, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'x-secret-token': APPS_SCRIPT_SECRET
+      },
+      body: JSON.stringify(payload)
+    });
 
-    if (result.success) {
-      console.log('El email se envió correctamente.');
-      return {
-        statusCode: 200,
-        body: JSON.stringify({ message: 'Reserva confirmada y correo enviado.' })
-      };
-    } else {
-      console.error('El servicio de email reportó un fallo.', result.error);
-      throw new Error(result.error);
+    const responseData = await response.json();
+    console.log('Respuesta de Google Apps Script:', responseData);
+
+    if (!response.ok || responseData.status !== 'success') {
+      throw new Error(`Error en la llamada a Google Apps Script: ${responseData.message || response.statusText}`);
     }
+
+    console.log('Proceso completado con éxito.');
+    return {
+      statusCode: 200,
+      body: JSON.stringify({ message: 'Reserva procesada y correo solicitado.' })
+    };
 
   } catch (error) {
     console.error('Error detallado en el bloque catch:', error);

@@ -10,6 +10,7 @@
   "dependencies": {
     "googleapis": "^128.0.0",
     "moment": "^2.29.4",
+    "node-fetch": "^2.6.7",
     
     "nodemailer": "^6.9.7"
   },
