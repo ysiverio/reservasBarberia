@@ -26,13 +26,24 @@ exports.handler = async function(event, context) {
     console.log('Token verificado exitosamente.');
 
     // 2. Si el token es válido, obtener las reservas
-    const { date } = JSON.parse(event.body);
-    if (!date) {
-      return { statusCode: 400, headers, body: JSON.stringify({ success: false, message: 'Fecha requerida.' }) };
+    const { month, year } = JSON.parse(event.body);
+    if (!month || !year) {
+      return { statusCode: 400, headers, body: JSON.stringify({ success: false, message: 'Mes y año requeridos.' }) };
     }
 
-    console.log(`Buscando reservaciones en Firestore para la fecha: ${date}`);
-    const reservationsSnapshot = await db.collection('reservations').where('date', '==', date).orderBy('time', 'asc').get();
+    // Calcular el rango de fechas para el mes
+    const startDate = moment(`${year}-${month}-01`).startOf('month').format('YYYY-MM-DD');
+    const endDate = moment(`${year}-${month}-01`).endOf('month').format('YYYY-MM-DD');
+
+    console.log(`Buscando reservaciones en Firestore para el rango: ${startDate} a ${endDate}`);
+    
+    // Consulta Firestore para obtener todas las reservas en el rango de fechas
+    const reservationsSnapshot = await db.collection('reservations')
+      .where('date', '>=', startDate)
+      .where('date', '<=', endDate)
+      .orderBy('date', 'asc')
+      .orderBy('time', 'asc')
+      .get();
 
     if (reservationsSnapshot.empty) {
       return { statusCode: 200, headers, body: JSON.stringify({ success: true, reservations: [] }) };

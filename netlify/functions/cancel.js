@@ -16,7 +16,7 @@ exports.handler = async function(event, context) {
   }
 
   try {
-    const { id } = JSON.parse(event.body);
+    const { id, reason } = JSON.parse(event.body);
 
     if (!id) {
       return { statusCode: 400, body: JSON.stringify({ success: false, message: 'ID de reserva requerido.' }) };
