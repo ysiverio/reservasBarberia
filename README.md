@@ -1,6 +1,4 @@
 # Sistema de Reservas de Barbería
-
-
 Sistema completo de reservas para barbería con frontend estático y backend en Google Apps Script (GAS). Permite a los usuarios reservar turnos, consultar disponibilidad en tiempo real y cancelar reservas con un link único.
 
 ## 🚀 Características
