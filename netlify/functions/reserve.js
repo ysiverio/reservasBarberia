@@ -32,9 +32,11 @@ exports.handler = async function(event, context) {
     // 2. Enviar el correo a través de Google Apps Script
     const emailPayload = {
       ...reservationData,
+      id: docRef.id, // Añadimos el ID de la reserva
+      cancelUrl: reservationData.cancelUrl, // Añadimos la URL de cancelación
       businessName: config.businessName,
       secretToken: APPS_SCRIPT_SECRET,
-      type: 'reservation' // <-- Añadimos el tipo de operación
+      type: 'reservation'
     };
 
     const response = await fetch(APPS_SCRIPT_URL, {

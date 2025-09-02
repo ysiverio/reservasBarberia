@@ -40,10 +40,12 @@ exports.handler = async function(event, context) {
 
     // 2. Enviar el correo de cancelación a través de Google Apps Script
     const emailPayload = {
-      ...doc.data(), // Datos originales de la reserva
+      ...doc.data(), // Datos originales de la reserva (name, email, date, time)
+      id: doc.id, // ID de la reserva
       cancellationReason: reason || 'Sin motivo especificado',
+      cancelledAt: new Date().toISOString(), // Fecha y hora de cancelación
       secretToken: process.env.APPS_SCRIPT_SECRET,
-      type: 'cancellation' // <-- Añadimos el tipo de operación
+      type: 'cancellation'
     };
 
     const response = await fetch(process.env.APPS_SCRIPT_URL, {

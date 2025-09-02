@@ -129,25 +129,25 @@ function handleReservationEmail(reservation) {
   </div>
     `;
 
-  const textFallback = buildConfirmationText({
-    name: reservation.name,
-    formattedDate,
-    time: reservation.time,
-    id: reservation.id,
-    cancelUrl: reservation.cancelUrl
-  });
+    const textFallback = buildConfirmationText({
+      name: reservation.name,
+      formattedDate,
+      time: reservation.time,
+      id: reservation.id,
+      cancelUrl: reservation.cancelUrl
+    });
 
-  MailApp.sendEmail(
-    reservation.email,
-    CONFIG.EMAIL_SUBJECT + ' - ' + CONFIG.EMAIL_NAME,
-    textFallback, // texto plano
-    {
-      from: CONFIG.EMAIL_FROM,
-      htmlBody: emailBody,
-      name: CONFIG.EMAIL_NAME,
-      attachments: [icsBlob]  // <- adjuntamos el .ics
-    }
-  );
+    MailApp.sendEmail(
+      reservation.email,
+      CONFIG.EMAIL_SUBJECT + ' - ' + CONFIG.EMAIL_NAME,
+      textFallback, // texto plano
+      {
+        from: CONFIG.EMAIL_FROM,
+        htmlBody: emailBody,
+        name: CONFIG.EMAIL_NAME,
+        attachments: [icsBlob]  // <- adjuntamos el .ics
+      }
+    );
 
   return createJsonResponse({ status: 'success', message: 'Correo de reserva enviado.' });
 }
@@ -219,25 +219,25 @@ function handleCancellationEmail(cancellation) {
   </div>
     `;
 
-  const textFallback = buildCancellationText({
-    name: cancellation.name,
-    formattedDate,
-    time: cancellation.time,
-    reservationId: cancellation.id, // Usar cancellation.id
-    formattedCancellationDate,
-    rebookUrl: CONFIG.WEB_APP_BASE_URL
-  });
+    const textFallback = buildCancellationText({
+      name: cancellation.name,
+      formattedDate,
+      time: cancellation.time,
+      reservationId: cancellation.id, // Usar cancellation.id
+      formattedCancellationDate,
+      rebookUrl: CONFIG.WEB_APP_BASE_URL
+    });
 
-  MailApp.sendEmail(
-    cancellation.email,
-    CONFIG.EMAIL_SUBJECT_CANCEL + ' - ' + CONFIG.EMAIL_NAME,
-    textFallback, // texto plano
-    {
-      from: CONFIG.EMAIL_FROM,
-      htmlBody: emailBody,
-      name: CONFIG.EMAIL_NAME
-    }
-  );
+    MailApp.sendEmail(
+      cancellation.email,
+      CONFIG.EMAIL_SUBJECT_CANCEL + ' - ' + CONFIG.EMAIL_NAME,
+      textFallback, // texto plano
+      {
+        from: CONFIG.EMAIL_FROM,
+        htmlBody: emailBody,
+        name: CONFIG.EMAIL_NAME
+      }
+    );
 
   return createJsonResponse({ status: 'success', message: 'Correo de cancelación enviado.' });
 }
@@ -336,7 +336,7 @@ function buildICS({ uid, title, startISO, endISO, details, location }) {
   const nowUTC = isoToUTCStamp(new Date().toISOString());
   const dtStart = isoToUTCStamp(startISO);
   const dtEnd   = isoToUTCStamp(endISO);
-  const esc = s => (s || '').replace(/([,;])/g, '\$1');
+  const esc = s => (s || '').replace(/([,;])/g, '\\$1');
 
   return [
     'BEGIN:VCALENDAR',
@@ -360,7 +360,7 @@ function buildICS({ uid, title, startISO, endISO, details, location }) {
 /** Texto plano fallback para confirmación */
 function buildConfirmationText({ name, formattedDate, time, id, cancelUrl }) {
   return (
-`Barberías Inteligentes
+`Barberias Inteligentes
 Tu reserva está confirmada
 
 Hola ${name},
@@ -383,11 +383,11 @@ demo.reservas.uy@gmail.com
 /** Texto plano fallback para cancelación */
 function buildCancellationText({ name, formattedDate, time, reservationId, formattedCancellationDate, rebookUrl }) {
   return (
-`Barberías Inteligentes
+`Barberias Inteligentes
 Reserva cancelada
 
 Hola ${name},
-Tu cita fue cancelada.  
+Tu cita fue cancelada.
 
 DETALLES
 - Fecha original: ${formattedDate}
