@@ -54,7 +54,10 @@ exports.handler = async function(event, context) {
       body: JSON.stringify(emailPayload)
     });
 
+    // Capturar la respuesta como texto para poder inspeccionarla
     const responseText = await response.text();
+    console.log('Respuesta cruda de Google Apps Script (en texto):', responseText);
+
     const responseData = JSON.parse(responseText);
 
     if (!response.ok || responseData.status !== 'success') {
