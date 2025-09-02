@@ -2,14 +2,13 @@ document.addEventListener('DOMContentLoaded', () => {
   // --- CONFIGURACIÓN DE FIREBASE (CLIENTE) ---
   // IMPORTANTE: Reemplaza esto con la configuración de tu proyecto de Firebase.
   const firebaseConfig = {
-  apiKey: "AIzaSyBe-74tJkrXFE_1ZCYHzyHs21ebc14NF-8",
-  authDomain: "agendas-f4494.firebaseapp.com",
-  projectId: "agendas-f4494",
-  storageBucket: "agendas-f4494.firebasestorage.app",
-  messagingSenderId: "1077527875604",
-  appId: "1:1077527875604:web:f9c6618f2da684244d9701",
-  measurementId: "G-K7092NNLYG"
-};
+    apiKey: "TU_API_KEY",
+    authDomain: "TU_PROJECT_ID.firebaseapp.com",
+    projectId: "TU_PROJECT_ID",
+    storageBucket: "TU_PROJECT_ID.appspot.com",
+    messagingSenderId: "TU_SENDER_ID",
+    appId: "TU_APP_ID"
+  };
 
   // Inicializar Firebase
   firebase.initializeApp(firebaseConfig);
@@ -29,6 +28,18 @@ document.addEventListener('DOMContentLoaded', () => {
   const selectedDateDisplay = document.getElementById('selected-date-display');
   const dailyReservationsList = document.getElementById('daily-reservations-list');
 
+  // Elementos de la gestión de servicios
+  const reservationsTab = document.getElementById('reservations-tab');
+  const servicesTab = document.getElementById('services-tab');
+  const reservationsSection = document.getElementById('reservations-section');
+  const servicesSection = document.getElementById('services-section');
+  const serviceForm = document.getElementById('service-form');
+  const serviceIdInput = document.getElementById('service-id');
+  const serviceNameInput = document.getElementById('service-name');
+  const serviceDurationInput = document.getElementById('service-duration');
+  const servicesListContainer = document.getElementById('services-list');
+  const cancelEditServiceBtn = document.getElementById('cancel-edit-service-btn');
+
   // --- ESTADO DEL CALENDARIO ---
   let currentMonth = new Date().getMonth();
   let currentYear = new Date().getFullYear();
@@ -41,6 +52,7 @@ document.addEventListener('DOMContentLoaded', () => {
       loginView.style.display = 'none';
       adminView.style.display = 'block';
       renderCalendar(); // Renderiza el calendario al iniciar sesión
+      fetchAndRenderServices(); // Carga los servicios al iniciar sesión
     } else {
       loginView.style.display = 'block';
       adminView.style.display = 'none';
@@ -67,6 +79,24 @@ document.addEventListener('DOMContentLoaded', () => {
     } catch (error) {
       console.error('Error al cerrar sesión:', error);
     }
+  });
+
+  // --- NAVEGACIÓN POR PESTAÑAS ---
+  reservationsTab.addEventListener('click', (e) => {
+    e.preventDefault();
+    reservationsTab.classList.add('active');
+    servicesTab.classList.remove('active');
+    reservationsSection.classList.add('show', 'active');
+    servicesSection.classList.remove('show', 'active');
+  });
+
+  servicesTab.addEventListener('click', (e) => {
+    e.preventDefault();
+    servicesTab.classList.add('active');
+    reservationsTab.classList.remove('active');
+    servicesSection.classList.add('show', 'active');
+    reservationsSection.classList.remove('show', 'active');
+    fetchAndRenderServices(); // Recargar servicios al cambiar a esta pestaña
   });
 
   // --- LÓGICA DEL CALENDARIO ---
@@ -196,9 +226,7 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   function displayDailyReservations(date) {
-    // Corregir problema de zona horaria para la visualización del día
-    const displayDate = new Date(date + 'T12:00:00'); 
-    selectedDateDisplay.textContent = displayDate.toLocaleDateString('es-ES', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
+    selectedDateDisplay.textContent = new Date(date + 'T12:00:00').toLocaleDateString('es-ES', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
     dailyReservationsList.innerHTML = '';
 
     const reservationsForDay = allReservations[date] || [];

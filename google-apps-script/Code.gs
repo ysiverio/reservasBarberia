@@ -26,7 +26,7 @@ function doPost(e) {
       return createJsonResponse({ status: 'error', message: 'Acceso no autorizado.' });
     }
 
-    // 2. Distinguir entre reserva, cancelación y reagendamiento
+    // 2. Distinguir entre reserva y cancelación
     if (payload.type === 'reservation') {
       return handleReservationEmail(payload);
     } else if (payload.type === 'cancellation') {
@@ -72,10 +72,6 @@ function handleReservationEmail(reservation) {
     location: CONFIG.CAL_LOCATION
   });
   const icsBlob = Utilities.newBlob(icsContent, 'text/calendar', `Reserva_${reservation.id}.ics`);
-
-  // Construir URLs de cancelación y reagendamiento aquí
-  const cancelUrl = `${CONFIG.WEB_APP_BASE_URL}/cancel.html?id=${reservation.id}`;
-  const rescheduleUrl = `${CONFIG.WEB_APP_BASE_URL}/reschedule.html?id=${reservation.id}`;
 
   // 3) HTML del correo (incluye Add-to-Calendar)
   const emailBody = `
@@ -138,7 +134,7 @@ function handleReservationEmail(reservation) {
       </p>
     </div>
   </div>
-    `
+    `;
 
     const textFallback = buildConfirmationText({
       name: reservation.name,
@@ -229,7 +225,7 @@ function handleCancellationEmail(cancellation) {
       </p>
     </div>
   </div>
-    `
+    `;
 
     const textFallback = buildCancellationText({
       name: cancellation.name,
@@ -348,7 +344,7 @@ function buildICS({ uid, title, startISO, endISO, details, location }) {
   const nowUTC = isoToUTCStamp(new Date().toISOString());
   const dtStart = isoToUTCStamp(startISO);
   const dtEnd   = isoToUTCStamp(endISO);
-  const esc = s => (s || '').replace(/([,;])/g, '\\$1');
+  const esc = s => (s || '').replace(/([,;])/g, '\$1');
 
   return [
     'BEGIN:VCALENDAR',
