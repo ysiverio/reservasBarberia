@@ -1,10 +1,6 @@
 {
-  "name": "netlify-functions",
-  "version": "1.0.0",
   "dependencies": {
-    "googleapis": "^128.0.0",
     "moment": "^2.29.4",
-    "crypto": "^1.0.1",
-    "nodemailer": "^6.9.7"
+    "nodemailer": "^6.9.5"
   }
 }
