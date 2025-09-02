@@ -196,7 +196,9 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   function displayDailyReservations(date) {
-    selectedDateDisplay.textContent = new Date(date).toLocaleDateString('es-ES', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
+    // Corregir problema de zona horaria para la visualización del día
+    const displayDate = new Date(date + 'T12:00:00'); 
+    selectedDateDisplay.textContent = displayDate.toLocaleDateString('es-ES', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
     dailyReservationsList.innerHTML = '';
 
     const reservationsForDay = allReservations[date] || [];
