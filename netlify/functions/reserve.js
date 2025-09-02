@@ -33,7 +33,6 @@ exports.handler = async function(event, context) {
     const emailPayload = {
       ...reservationData,
       id: docRef.id, // Añadimos el ID de la reserva
-      cancelUrl: reservationData.cancelUrl, // Añadimos la URL de cancelación
       businessName: config.businessName,
       secretToken: APPS_SCRIPT_SECRET,
       type: 'reservation'

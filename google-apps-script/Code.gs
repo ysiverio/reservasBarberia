@@ -73,6 +73,10 @@ function handleReservationEmail(reservation) {
   });
   const icsBlob = Utilities.newBlob(icsContent, 'text/calendar', `Reserva_${reservation.id}.ics`);
 
+  // Construir URLs de cancelación y reagendamiento aquí
+  const cancelUrl = `${CONFIG.WEB_APP_BASE_URL}/cancel.html?id=${reservation.id}`;
+  const rescheduleUrl = `${CONFIG.WEB_APP_BASE_URL}/reschedule.html?id=${reservation.id}`;
+
   // 3) HTML del correo (incluye Add-to-Calendar)
   const emailBody = `
   <div style="font-family: Arial, sans-serif; max-width: 640px; margin: 0 auto; padding: 24px; background-color: #ffffff; border-radius: 12px; border: 1px solid #e5e5e5;">
@@ -96,7 +100,7 @@ function handleReservationEmail(reservation) {
 
       <div style="margin-top:18px;">
         <a href="${googleCalendarUrl}" 
-           style="display:inline-block; background:#3b82f6; color:#fff; font-weight:600; padding:10px 18px; border-radius:6px; margin-right:12px;">
+           style="display:inline-block; background:#3b82f6; color:#fff; text-decoration:none; font-weight:600; padding:10px 18px; border-radius:6px; margin-right:12px;">
            Agregar a Google Calendar
         </a>
         <br>
@@ -109,9 +113,13 @@ function handleReservationEmail(reservation) {
       <p style="color: #92400e; font-size: 15px; margin: 0 0 16px;">
         Cancelá o reprogramá tu cita desde este enlace:
       </p>
-      <a href="${reservation.cancelUrl}" 
+      <a href="${cancelUrl}" 
          style="display:inline-block; background-color:#dc2626; color:#fff; font-weight:600; text-decoration:none; padding:10px 18px; border-radius:6px;">
-        Cancelar / Reprogramar
+        Cancelar
+      </a>
+      <a href="${rescheduleUrl}" 
+         style="display:inline-block; background-color:#007bff; color:#fff; font-weight:600; text-decoration:none; padding:10px 18px; border-radius:6px; margin-left:10px;">
+        Reagendar
       </a>
     </div>
 
@@ -130,14 +138,15 @@ function handleReservationEmail(reservation) {
       </p>
     </div>
   </div>
-    `;
+    `
 
     const textFallback = buildConfirmationText({
       name: reservation.name,
       formattedDate,
       time: reservation.time,
       id: reservation.id,
-      cancelUrl: reservation.cancelUrl
+      cancelUrl: cancelUrl, // Usar la URL construida
+      rescheduleUrl: rescheduleUrl // Usar la URL construida
     });
 
     MailApp.sendEmail(
@@ -220,7 +229,7 @@ function handleCancellationEmail(cancellation) {
       </p>
     </div>
   </div>
-    `;
+    `
 
     const textFallback = buildCancellationText({
       name: cancellation.name,
