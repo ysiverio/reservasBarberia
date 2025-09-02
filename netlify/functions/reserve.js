@@ -2,7 +2,7 @@ const fetch = require('node-fetch');
 const config = require('./lib/config.json');
 
 exports.handler = async function(event, context) {
-  console.log('Iniciando la función reserve.js v2 (con llamada a Google Apps Script)');
+  console.log('Iniciando la función reserve.js v3 (logueando respuesta cruda)');
 
   if (event.httpMethod !== 'POST') {
     return { statusCode: 405, body: 'Method Not Allowed' };
@@ -17,16 +17,9 @@ exports.handler = async function(event, context) {
 
   try {
     const reservation = JSON.parse(event.body);
-    console.log('Reserva recibida:', reservation);
+    const payload = { ...reservation, businessName: config.businessName };
 
-    // Añadimos el nombre del negocio a los datos que enviaremos a Google
-    const payload = {
-      ...reservation,
-      businessName: config.businessName
-    };
-
-    console.log('Enviando datos a Google Apps Script...');
-    console.log(`Llamando a la URL: ${APPS_SCRIPT_URL}`); // Log para verificar la URL
+    console.log(`Llamando a la URL: ${APPS_SCRIPT_URL}`);
 
     const response = await fetch(APPS_SCRIPT_URL, {
       method: 'POST',
@@ -37,8 +30,12 @@ exports.handler = async function(event, context) {
       body: JSON.stringify(payload)
     });
 
-    const responseData = await response.json();
-    console.log('Respuesta de Google Apps Script:', responseData);
+    // Capturar la respuesta como texto para poder inspeccionarla
+    const responseText = await response.text();
+    console.log('Respuesta cruda de Google Apps Script (en texto):', responseText);
+
+    // Ahora, intentar parsear el texto como JSON
+    const responseData = JSON.parse(responseText);
 
     if (!response.ok || responseData.status !== 'success') {
       throw new Error(`Error en la llamada a Google Apps Script: ${responseData.message || response.statusText}`);
