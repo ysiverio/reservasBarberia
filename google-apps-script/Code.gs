@@ -5,6 +5,7 @@ const SECRET_TOKEN = 'un-token-muy-secreto-y-dificil-de-adivinar';
 const CONFIG = {
   EMAIL_SUBJECT: 'Confirmación de reserva',
   EMAIL_SUBJECT_CANCEL: 'Cancelación de reserva',
+  EMAIL_SUBJECT_RESCHEDULE: 'Reserva Reagendada',
   EMAIL_FROM: 'Demo Reservas UY <demo.reservas.uy@gmail.com>', // <-- Reemplaza con tu email de envío
   EMAIL_NAME: 'Demo Reservas UY',  // <-- Reemplaza con el nombre de tu negocio
   LOCAL_OFFSET: '-03:00',             // Offset de tu zona horaria (ej. -03:00 para Uruguay/Argentina)
@@ -25,11 +26,13 @@ function doPost(e) {
       return createJsonResponse({ status: 'error', message: 'Acceso no autorizado.' });
     }
 
-    // 2. Distinguir entre reserva y cancelación
+    // 2. Distinguir entre reserva, cancelación y reagendamiento
     if (payload.type === 'reservation') {
       return handleReservationEmail(payload);
     } else if (payload.type === 'cancellation') {
       return handleCancellationEmail(payload);
+    } else if (payload.type === 'reschedule') {
+      return handleRescheduleEmail(payload);
     } else {
       return createJsonResponse({ status: 'error', message: 'Tipo de operación no reconocido.' });
     }
@@ -93,7 +96,7 @@ function handleReservationEmail(reservation) {
 
       <div style="margin-top:18px;">
         <a href="${googleCalendarUrl}" 
-           style="display:inline-block; background:#3b82f6; color:#fff; text-decoration:none; font-weight:600; padding:10px 18px; border-radius:6px; margin-right:12px;">
+           style="display:inline-block; background:#3b82f6; color:#fff; font-weight:600; padding:10px 18px; border-radius:6px; margin-right:12px;">
            Agregar a Google Calendar
         </a>
         <br>
@@ -360,7 +363,7 @@ function buildICS({ uid, title, startISO, endISO, details, location }) {
 /** Texto plano fallback para confirmación */
 function buildConfirmationText({ name, formattedDate, time, id, cancelUrl }) {
   return (
-`Barberias Inteligentes
+`Barberías Inteligentes
 Tu reserva está confirmada
 
 Hola ${name},
@@ -383,7 +386,7 @@ demo.reservas.uy@gmail.com
 /** Texto plano fallback para cancelación */
 function buildCancellationText({ name, formattedDate, time, reservationId, formattedCancellationDate, rebookUrl }) {
   return (
-`Barberias Inteligentes
+`Barberías Inteligentes
 Reserva cancelada
 
 Hola ${name},
