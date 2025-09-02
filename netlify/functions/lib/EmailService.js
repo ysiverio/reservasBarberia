@@ -1,6 +1,4 @@
-const nodemailer_base = require('nodemailer');
-// Arreglo para asegurar compatibilidad entre módulos CommonJS y ES
-const nodemailer = nodemailer_base.default || nodemailer_base;
+const nodemailer = require('nodemailer');
 
 const moment = require('moment');
 const config = require('./config.json');
