@@ -1,12 +1,12 @@
-const nodemailer = require('nodemailer');
+const nodemailer_base = require('nodemailer');
+// Arreglo para asegurar compatibilidad entre módulos CommonJS y ES
+const nodemailer = nodemailer_base.default || nodemailer_base;
+
 const moment = require('moment');
 const config = require('./config.json');
 
 class EmailService {
   constructor() {
-    // Log para inspeccionar el objeto nodemailer
-    console.log("Inspeccionando el objeto nodemailer importado:", nodemailer);
-
     this.transporter = nodemailer.createTransporter({
       service: 'gmail',
       auth: {
