@@ -1,4 +1,13 @@
 {
   "businessName": "Tu Negocio Aquí",
-  "senderEmail": "no-reply@tudominio.com"
+  "availability": {
+    "workDays": [1, 2, 3, 4, 5],
+    "holidays": [],
+    "workHours": {
+      "start": "09:00",
+      "end": "18:00"
+    },
+    "slotDurationMinutes": 30,
+    "maxReservationsPerDay": 12
+  }
 }
