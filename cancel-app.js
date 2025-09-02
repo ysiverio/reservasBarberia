@@ -31,8 +31,12 @@ document.addEventListener('DOMContentLoaded', () => {
         throw new Error(data.message || 'Ocurrió un error al cancelar.');
       }
 
-      responseMessage.textContent = '¡Tu reserva ha sido cancelada exitosamente!';
+      responseMessage.textContent = '¡Tu reserva ha sido cancelada exitosamente! Redirigiendo a la página principal...';
       responseMessage.className = 'text-success';
+
+      setTimeout(() => {
+        window.location.href = '/'; // Redirige a la página de inicio
+      }, 3000);
 
     } catch (error) {
       console.error('Error al cancelar:', error);

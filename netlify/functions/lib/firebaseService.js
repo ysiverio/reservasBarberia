@@ -11,7 +11,8 @@ if (!admin.apps.length) {
   });
 }
 
-// Exportamos la instancia de Firestore para que otras funciones la puedan usar
+// Exportamos los servicios de Firestore y Auth para que otras funciones los puedan usar
 const db = admin.firestore();
+const auth = admin.auth();
 
-module.exports = { db };
+module.exports = { db, auth };
