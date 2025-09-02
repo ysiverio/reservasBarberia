@@ -26,6 +26,7 @@ exports.handler = async function(event, context) {
     };
 
     console.log('Enviando datos a Google Apps Script...');
+    console.log(`Llamando a la URL: ${APPS_SCRIPT_URL}`); // Log para verificar la URL
 
     const response = await fetch(APPS_SCRIPT_URL, {
       method: 'POST',
