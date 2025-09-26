@@ -1,8 +1,7 @@
-// Un token secreto para asegurar que solo nuestra Netlify Function pueda llamar a este script.
-const SECRET_TOKEN = 'un-token-muy-secreto-y-dificil-de-adivinar';
+var SECRET_TOKEN = 'un-token-muy-secreto-y-dificil-de-adivinar';
 
 // Configuración global para los emails y links
-const CONFIG = {
+var CONFIG = {
   EMAIL_SUBJECT: 'Confirmación de reserva',
   EMAIL_SUBJECT_CANCEL: 'Cancelación de reserva',
   EMAIL_SUBJECT_RESCHEDULE: 'Reserva Reagendada',
@@ -13,6 +12,10 @@ const CONFIG = {
   CAL_LOCATION: 'Tu Ubicación',       // <-- Opcional: Reemplaza con la ubicación de tu negocio
   WEB_APP_BASE_URL: 'https://demo-citas-barberias.netlify.app' // <-- Reemplaza con la URL base de tu sitio
 };
+
+// Variables globales para URLs de email (solución agresiva para ReferenceError)
+var globalCancelUrl;
+var globalRescheduleUrl;
 
 /**
  * Esta es la función principal de la Web App.
@@ -26,7 +29,7 @@ function doPost(e) {
       return createJsonResponse({ status: 'error', message: 'Acceso no autorizado.' });
     }
 
-    // 2. Distinguir entre reserva y cancelación
+    // 2. Distinguir entre reserva, cancelación y reagendamiento
     if (payload.type === 'reservation') {
       return handleReservationEmail(payload);
     } else if (payload.type === 'cancellation') {
@@ -73,6 +76,10 @@ function handleReservationEmail(reservation) {
   });
   const icsBlob = Utilities.newBlob(icsContent, 'text/calendar', `Reserva_${reservation.id}.ics`);
 
+  // Construir URLs de cancelación y reagendamiento aquí y asignarlas a las variables globales
+  globalCancelUrl = `${CONFIG.WEB_APP_BASE_URL}/cancel.html?id=${reservation.id}`;
+  globalRescheduleUrl = `${CONFIG.WEB_APP_BASE_URL}/reschedule.html?id=${reservation.id}`;
+
   // 3) HTML del correo (incluye Add-to-Calendar)
   const emailBody = `
   <div style="font-family: Arial, sans-serif; max-width: 640px; margin: 0 auto; padding: 24px; background-color: #ffffff; border-radius: 12px; border: 1px solid #e5e5e5;">
@@ -109,11 +116,11 @@ function handleReservationEmail(reservation) {
       <p style="color: #92400e; font-size: 15px; margin: 0 0 16px;">
         Cancelá o reprogramá tu cita desde este enlace:
       </p>
-      <a href="${cancelUrl}" 
+      <a href="${globalCancelUrl}" 
          style="display:inline-block; background-color:#dc2626; color:#fff; font-weight:600; text-decoration:none; padding:10px 18px; border-radius:6px;">
         Cancelar
       </a>
-      <a href="${rescheduleUrl}" 
+      <a href="${globalRescheduleUrl}" 
          style="display:inline-block; background-color:#007bff; color:#fff; font-weight:600; text-decoration:none; padding:10px 18px; border-radius:6px; margin-left:10px;">
         Reagendar
       </a>
@@ -141,8 +148,8 @@ function handleReservationEmail(reservation) {
       formattedDate,
       time: reservation.time,
       id: reservation.id,
-      cancelUrl: cancelUrl, // Usar la URL construida
-      rescheduleUrl: rescheduleUrl // Usar la URL construida
+      cancelUrl: globalCancelUrl, // Usar la URL global
+      rescheduleUrl: globalRescheduleUrl // Usar la URL global
     });
 
     MailApp.sendEmail(
@@ -344,7 +351,7 @@ function buildICS({ uid, title, startISO, endISO, details, location }) {
   const nowUTC = isoToUTCStamp(new Date().toISOString());
   const dtStart = isoToUTCStamp(startISO);
   const dtEnd   = isoToUTCStamp(endISO);
-  const esc = s => (s || '').replace(/([,;])/g, '\$1');
+  const esc = s => (s || '').replace(/([,;])/g, '\\$1');
 
   return [
     'BEGIN:VCALENDAR',
