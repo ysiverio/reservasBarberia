@@ -1,5 +1,5 @@
 {
-  "businessName": "Tu Negocio Aquí",
+  "businessName": "Demo Barberías Inteligentes",
   "availability": {
     "workDays": [1, 2, 3, 4, 5],
     "holidays": [],
@@ -8,6 +8,6 @@
       "end": "18:00"
     },
     "slotDurationMinutes": 30,
-    "maxReservationsPerDay": 12
+    "maxReservationsPerDay": 20
   }
 }

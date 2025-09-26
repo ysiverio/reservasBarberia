@@ -37,18 +37,36 @@ function buildLink(base, path) {
 exports.handler = async function(event, context) {
   console.log('Iniciando la funcion reserve.js v5 (con Firestore)');
 
+  // Headers CORS
+  const headers = {
+    'Access-Control-Allow-Origin': '*',
+    'Access-Control-Allow-Headers': 'Content-Type',
+    'Access-Control-Allow-Methods': 'POST, OPTIONS'
+  };
+
+  if (event.httpMethod === 'OPTIONS') {
+    return { statusCode: 200, headers, body: '' };
+  }
+
   if (event.httpMethod !== 'POST') {
-    return { statusCode: 405, body: 'Method Not Allowed' };
+    return { statusCode: 405, headers, body: 'Method Not Allowed' };
   }
 
   const { APPS_SCRIPT_URL, APPS_SCRIPT_SECRET } = process.env;
 
   if (!APPS_SCRIPT_URL || !APPS_SCRIPT_SECRET) {
     console.error('Configuracion faltante: APPS_SCRIPT_URL/APPS_SCRIPT_SECRET');
-    return { statusCode: 500, body: JSON.stringify({ error: 'Error de configuracion del servidor.' }) };
+    return { 
+      statusCode: 500, 
+      headers,
+      body: JSON.stringify({ 
+        error: 'Error de configuracion del servidor. Variables de entorno faltantes.' 
+      }) 
+    };
   }
 
   let docRef = null;
+  let reservationSaved = false;
 
   try {
     const reservationData = JSON.parse(event.body);
@@ -76,6 +94,7 @@ exports.handler = async function(event, context) {
     };
 
     await docRef.set(newReservation);
+    reservationSaved = true;
     console.log('Reserva guardada con ID:', reservationId);
 
     const emailPayload = {
@@ -88,45 +107,58 @@ exports.handler = async function(event, context) {
       rescheduleUrl
     };
 
-    const response = await fetch(APPS_SCRIPT_URL, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(emailPayload)
-    });
-
-    const responseText = await response.text();
-    let responseData;
+    let emailSuccess = true;
+    let emailErrorMessage = null;
 
     try {
-      responseData = responseText ? JSON.parse(responseText) : {};
-    } catch (parseError) {
-      console.error('Respuesta no JSON de Google Apps Script:', responseText);
-      throw new Error('Respuesta invalida de Google Apps Script');
+      const response = await fetch(APPS_SCRIPT_URL, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(emailPayload)
+      });
+
+      const responseText = await response.text();
+      let responseData;
+
+      try {
+        responseData = responseText ? JSON.parse(responseText) : {};
+      } catch (parseError) {
+        console.error('Respuesta no JSON de Google Apps Script:', responseText);
+        throw new Error('Respuesta invalida de Google Apps Script');
+      }
+
+      if (!response.ok) {
+        throw new Error(responseData.message || response.statusText || 'Error en la llamada a Google Apps Script');
+      }
+
+      if (responseData.status !== 'success') {
+        throw new Error(responseData.message || 'Google Apps Script retorno un estado invalido.');
+      }
+
+      console.log('Solicitud de correo a Apps Script completada con exito.');
+    } catch (emailError) {
+      emailSuccess = false;
+      emailErrorMessage = emailError.message;
+      console.error('Fallo al solicitar el correo en Apps Script:', emailError);
     }
 
-    if (!response.ok) {
-      throw new Error(responseData.message || response.statusText || 'Error en la llamada a Google Apps Script');
-    }
-
-    if (responseData.status !== 'success') {
-      throw new Error(responseData.message || 'Google Apps Script retorno un estado invalido.');
-    }
-
-    console.log('Proceso completado con exito.');
     return {
       statusCode: 200,
+      headers,
       body: JSON.stringify({
-        message: 'Reserva procesada y correo solicitado.',
+        message: 'Reserva procesada correctamente.',
         reservationId,
         cancelUrl,
-        rescheduleUrl
+        rescheduleUrl,
+        emailRequested: emailSuccess,
+        emailError: emailErrorMessage
       })
     };
 
   } catch (error) {
     console.error('Error detallado en el bloque catch:', error);
 
-    if (docRef) {
+    if (docRef && reservationSaved) {
       try {
         await docRef.delete();
         console.log(`Reserva ${docRef.id} eliminada tras fallo en el proceso.`);
@@ -137,6 +169,7 @@ exports.handler = async function(event, context) {
 
     return {
       statusCode: 500,
+      headers,
       body: JSON.stringify({ error: 'Hubo un error al procesar la reserva.' })
     };
   }
