@@ -2,6 +2,38 @@ const fetch = require('node-fetch');
 const config = require('./lib/config.json');
 const { db } = require('./lib/firebaseService.js');
 
+function resolveSiteBaseUrl(event) {
+  const explicit = process.env.SITE_BASE_URL || process.env.PUBLIC_SITE_URL || process.env.DEPLOY_PRIME_URL || process.env.URL;
+  if (explicit) {
+    return explicit.replace(/\/$/, '');
+  }
+
+  const headers = event.headers || {};
+  const originHeader = headers.origin || headers.Origin;
+  if (originHeader) {
+    try {
+      return new URL(originHeader).origin.replace(/\/$/, '');
+    } catch (error) {
+      console.warn('No se pudo parsear el header origin:', originHeader, error);
+    }
+  }
+
+  const host = headers['x-forwarded-host'] || headers['host'];
+  const protocol = headers['x-forwarded-proto'] || 'https';
+  if (host) {
+    return `${protocol}://${host}`.replace(/\/$/, '');
+  }
+
+  return '';
+}
+
+function buildLink(base, path) {
+  if (!base) {
+    return path;
+  }
+  return `${base.replace(/\/$/, '')}/${path.replace(/^\//, '')}`;
+}
+
 exports.handler = async function(event, context) {
   console.log('Iniciando la funcion reserve.js v5 (con Firestore)');
 
@@ -22,22 +54,38 @@ exports.handler = async function(event, context) {
     const reservationData = JSON.parse(event.body);
     console.log('Reserva recibida:', reservationData);
 
+    const siteBaseUrl = resolveSiteBaseUrl(event);
+    if (!siteBaseUrl) {
+      console.warn('No se pudo determinar SITE_BASE_URL. Se usaran rutas relativas para cancel/reschedule.');
+    }
+
+    docRef = db.collection('reservations').doc();
+    const reservationId = docRef.id;
+    console.log('ID generado para la reserva:', reservationId);
+
+    const cancelUrl = buildLink(siteBaseUrl, `/cancel.html?id=${reservationId}`);
+    const rescheduleUrl = buildLink(siteBaseUrl, `/reschedule.html?id=${reservationId}`);
+
     console.log('Guardando reserva en Firestore...');
     const newReservation = {
       ...reservationData,
       status: 'CONFIRMED',
-      createdAt: new Date().toISOString()
+      createdAt: new Date().toISOString(),
+      cancelUrl,
+      rescheduleUrl
     };
 
-    docRef = await db.collection('reservations').add(newReservation);
-    console.log('Reserva guardada con ID:', docRef.id);
+    await docRef.set(newReservation);
+    console.log('Reserva guardada con ID:', reservationId);
 
     const emailPayload = {
       ...reservationData,
-      id: docRef.id,
+      id: reservationId,
       businessName: config.businessName,
       secretToken: APPS_SCRIPT_SECRET,
-      type: 'reservation'
+      type: 'reservation',
+      cancelUrl,
+      rescheduleUrl
     };
 
     const response = await fetch(APPS_SCRIPT_URL, {
@@ -69,7 +117,9 @@ exports.handler = async function(event, context) {
       statusCode: 200,
       body: JSON.stringify({
         message: 'Reserva procesada y correo solicitado.',
-        reservationId: docRef.id
+        reservationId,
+        cancelUrl,
+        rescheduleUrl
       })
     };
 
